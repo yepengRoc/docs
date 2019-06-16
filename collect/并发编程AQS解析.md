@@ -2,7 +2,11 @@
 typora-root-url: ..\image
 ---
 
+## 非公平锁
+
 ### 非公平方式获取锁
+
+#### 锁的获取
 
 
 
@@ -15,13 +19,13 @@ lock.lock();
 
 lock.lock()调用方法
 
-```
+```java
 sync.lock();
 ```
 
 调用静态内部类NonfairSync 中的lock方法
 
-```
+```java
 final void lock() {
 	/**
 	设置全局状态state 为1。如果设置成功，则设置当前线程为拥有锁的线程
@@ -33,24 +37,24 @@ final void lock() {
 }
 ```
 
-```
+```java
 /**
 如果尝试获取锁失败，且添加进等待队列失败。则中断
 **/
 public final void acquire(int arg) {
     if (!tryAcquire(arg) &&
         acquireQueued(addWaiter(Node.EXCLUSIVE), arg))
-        selfInterrupt();
+        selfInterrupt();//中断如果没有中断处理，则线程会正常处理完。走释放流程
 }
 ```
 
-```
+```java
 protected final boolean tryAcquire(int acquires) {
     return nonfairTryAcquire(acquires);
 }
 ```
 
-```
+```java
 /**
 	因为是非公平的方式获取锁。所以再前面compareAndSetState(0, 1) 失败（失败表示当时的state肯定不为0）之后，这里再次进行state值的判断，有可能前面获取锁的线程已经释放锁了。
 	如果state=0 标识无线程获取锁，则当前线程再次通过compareAndSetState(0, 1) 设置自己为锁的拥有者
@@ -76,7 +80,7 @@ final boolean nonfairTryAcquire(int acquires) {
 }
 ```
 
-```
+```java
 /**
   把获取锁的线程构建成双向非循环队列的一个节点
   这里的mode是标识锁的类型，是共享锁 还是排它锁。对应的是
@@ -138,7 +142,7 @@ final boolean acquireQueued(final Node node, int arg) {
                 setHead(node);
                 p.next = null; // help GC
                 failed = false;
-                return interrupted;
+                return interrupted;//如果线程阻塞，则执行真正的阻塞
             }
             /**
             shouldParkAfterFailedAcquire
@@ -146,12 +150,18 @@ final boolean acquireQueued(final Node node, int arg) {
             2前驱节点是头节点。但是获取锁失败了
               前驱节点是头节点说明已经是获取锁的状态，不可能是取消状态
               说明前驱节点还没有释放锁。前驱如果没有被取消。如果状态是0 则失败，继续循环，如果不为0则返回true. 
-            parkAndCheckInterrupt 通过jdk native方法。阻塞当前线程0秒
+            parkAndCheckInterrupt 通过jdk native方法。阻塞当前线程 底层0就是永久阻塞
             如果线程在阻塞的时候被中断。则是真的中断。-- 温故
             是lock.interrupt
             还是thread.interrupt会抛异常。
             wait 的时候会抛异常。并清除中断位
             
+            还有unpark方法可以先调用。即便这个时候
+            https://www.jianshu.com/p/ceb8870ef2c5 博客讲解park方法
+            还没有执行park,如果这个时候执行park，则线程不会阻塞，直接继续执行，因为先行执行过一次uppark
+            这里parkAandCheckInterrupt 在park的时候，如果先行执行了uppark,则这里不会进行阻塞，
+            继续执行。
+            如果阻塞的过程 线程执行了interrupt,则会抛异常。如果没有阻塞，则返回真实的阻塞状态
             **/
             if (shouldParkAfterFailedAcquire(p, node) &&
                 parkAndCheckInterrupt())
@@ -184,6 +194,9 @@ private static boolean shouldParkAfterFailedAcquire(Node pred, Node node) {
         return Thread.interrupted();
     }
     //取消节点
+    /**
+    
+    **/
     private void cancelAcquire(Node node) {
         if (node == null)
             return;
@@ -221,3 +234,140 @@ private static boolean shouldParkAfterFailedAcquire(Node pred, Node node) {
     
     
 ```
+
+### 非公平锁的释放
+
+```java
+public void unlock() {
+    sync.release(1);
+}
+/**
+尝试释放锁。如果释放成功
+如果当前节点是头节点。且当前节点的状态是-1
+-1表明当前节点被阻塞过，相对应的next的也被阻塞
+所以要通过upark释放唤醒后续节点
+**/
+public final boolean release(int arg) {
+        if (tryRelease(arg)) {
+            Node h = head;
+            if (h != null && h.waitStatus != 0)
+                unparkSuccessor(h);
+            return true;
+        }
+        return false;
+ }
+```
+
+```java
+/**
+尝试释放节点。如果节点是初始化状态。则直接更新全局状态为0
+后续加入线程可进行锁的竞争
+**/
+protected final boolean tryRelease(int releases) {
+    int c = getState() - releases;
+    if (Thread.currentThread() != getExclusiveOwnerThread())
+        throw new IllegalMonitorStateException();
+    boolean free = false;
+    if (c == 0) {
+        free = true;
+        setExclusiveOwnerThread(null);
+    }
+    setState(c);
+    return free;
+}
+/**
+如果当前节点是取消状态。则从尾部开始查找第一个不为取消的节点
+个人理解：因为线程是实时变化的。所以从此刻的尾部开始查找。
+有可能next已经获取成功了，不需要unpark.
+即便状态等于0
+因为当前头节点还在执行h.waitstatus != 0
+所以next的节点肯定最后会进行 -1设置。通过unpark进行唤醒
+**/
+    private void unparkSuccessor(Node node) {
+       
+        int ws = node.waitStatus;
+        if (ws < 0)
+            compareAndSetWaitStatus(node, ws, 0);
+
+        Node s = node.next;
+        if (s == null || s.waitStatus > 0) {
+            s = null;
+            for (Node t = tail; t != null && t != node; t = t.prev)
+                if (t.waitStatus <= 0)
+                    s = t;
+        }
+        if (s != null)
+            LockSupport.unpark(s.thread);
+    }
+
+```
+
+## 公平锁
+
+### 公平方式获取锁
+
+
+
+
+
+## conditon
+
+```java
+/***
+线程进入等待
+是一个单项列表
+condition是在lock.lock()中操作，
+说明此时的线程已经获取了锁。
+await需要释放 资源
+通过while循环使线程阻塞
+**/
+public final void await() throws InterruptedException {
+    if (Thread.interrupted())
+        throw new InterruptedException();
+  	//将线程放到等待队列 队尾
+    Node node = addConditionWaiter();
+  //释放线程持有的锁，并唤醒后继线程
+    int savedState = fullyRelease(node);
+    int interruptMode = 0;
+  /**
+  如果线程没有进入等待同步队列。则在condition构建的等待队列上
+  则进入while结构进行阻塞
+  **/
+    while (!isOnSyncQueue(node)) {
+        LockSupport.park(this);
+        if ((interruptMode = checkInterruptWhileWaiting(node)) != 0)
+            break;
+    }
+  //说明中断了。如果不是在clh中 中断。则设置中断模式为 condition上的中断
+    if (acquireQueued(node, savedState) && interruptMode != THROW_IE)
+        interruptMode = REINTERRUPT;
+    if (node.nextWaiter != null) // clean up if cancelled
+        unlinkCancelledWaiters();
+    if (interruptMode != 0)
+        reportInterruptAfterWait(interruptMode);
+}
+/**
+判断线程在clh 队列 还是信号队列
+**/
+ final boolean isOnSyncQueue(Node node) {
+        if (node.waitStatus == Node.CONDITION || node.prev == null)
+            return false;
+   //node.waitestatus != node.condition 
+        if (node.next != null) // If has successor, it must be on queue
+            return true;
+       //从clh队列尾部开始查找。如果找到则返回true 否则返回false
+        return findNodeFromTail(node);
+    }
+//查找逻辑
+private boolean findNodeFromTail(Node node) {
+        Node t = tail;
+        for (;;) {
+            if (t == node)
+                return true;
+            if (t == null)
+                return false;
+            t = t.prev;
+        }
+    }
+```
+
