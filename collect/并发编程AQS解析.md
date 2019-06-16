@@ -2,9 +2,9 @@
 typora-root-url: ..\image
 ---
 
-## 非公平锁
+## 排它锁
 
-### 非公平方式获取锁
+### 非公平锁获取锁
 
 #### 锁的获取
 
@@ -302,15 +302,53 @@ protected final boolean tryRelease(int releases) {
 
 ```
 
-## 公平锁
+### 公平锁
 
-### 公平方式获取锁
+公平锁的获取和释放和非公平锁一样，只是严格按照先进先出进行处理的
+
+## 共享锁
+
+通过countdownlatch来查看下公平锁的实现
+
+```java
+CountDownLatch countDownLatch = new CountDownLatch();
+countDownLatch.await();
+countDownLatch.countDown();
+```
+
+### 获取锁
+
+```java
+countDownLatch.await();
+  public void await() throws InterruptedException {
+        sync.acquireSharedInterruptibly(1);
+    }
 
 
+```
+
+### 释放锁
+
+```java
+countDownLatch.countDown();
+ public void countDown() {
+        sync.releaseShared(1);
+    }
+    public final boolean releaseShared(int arg) {
+        if (tryReleaseShared(arg)) {
+            doReleaseShared();
+            return true;
+        }
+        return false;
+    }
+
+```
 
 
 
 ## conditon
+
+### Condition.await()
 
 ```java
 /***
@@ -371,3 +409,57 @@ private boolean findNodeFromTail(Node node) {
     }
 ```
 
+### Condition.single()
+
+```java
+/**
+如果不是独占锁，则抛出异常。如果占用锁的线程 不是当前线程
+**/
+public final void signal() {
+    if (!isHeldExclusively())
+        throw new IllegalMonitorStateException();
+    Node first = firstWaiter;
+    if (first != null)
+        doSignal(first);
+}
+        private void doSignal(Node first) {
+            do {
+                if ( (firstWaiter = first.nextWaiter) == null)
+                    lastWaiter = null;
+                first.nextWaiter = null;
+            } while (!transferForSignal(first) &&
+                     (first = firstWaiter) != null);
+        }
+    final boolean transferForSignal(Node node) {
+       
+        if (!compareAndSetWaitStatus(node, Node.CONDITION, 0))
+            return false;
+
+        Node p = enq(node);
+        int ws = p.waitStatus;
+        if (ws > 0 || !compareAndSetWaitStatus(p, ws, Node.SIGNAL))
+            LockSupport.unpark(node.thread);
+        return true;
+    }
+```
+
+### Condition.singleAll()
+
+```java
+public final void signalAll() {
+    if (!isHeldExclusively())
+        throw new IllegalMonitorStateException();
+    Node first = firstWaiter;
+    if (first != null)
+        doSignalAll(first);
+}
+private void doSignalAll(Node first) {
+            lastWaiter = firstWaiter = null;
+            do {
+                Node next = first.nextWaiter;
+                first.nextWaiter = null;
+                transferForSignal(first);
+                first = next;
+            } while (first != null);
+        }
+```
