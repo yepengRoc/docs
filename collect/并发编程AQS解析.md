@@ -380,9 +380,8 @@ public final boolean releaseShared(int arg) {
 int r = tryAcquireShared(arg);//如果许可大于0 
 等待许可的位置，一直空循环。直到有释放。后继节点抢占head位置，唤醒自己的后续
 
-如果这个时候有许可，则不停的唤醒 后继节点
-
-如果h == head 则退出循环。
+如果这个时候有许可，则不停的唤醒 后继节点，后继节点设置自己为头节点，
+所以h == head 可能一直为false。
 **/
 private void doReleaseShared() {
     for (;;) {
