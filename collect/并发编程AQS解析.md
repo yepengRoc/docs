@@ -308,12 +308,108 @@ protected final boolean tryRelease(int releases) {
 
 ## 共享锁
 
+### 锁的获取
+
+```java
+/**
+共享锁-核心方法
+tryAcquireShared 由子类进行实现
+doAcquireSharedInterruptibly 统一实现
+**/
+public final void acquireSharedInterruptibly(int arg)
+        throws InterruptedException {
+    if (Thread.interrupted())
+        throw new InterruptedException();
+    if (tryAcquireShared(arg) < 0)
+        doAcquireSharedInterruptibly(arg);
+}
+  
+private void doAcquireSharedInterruptibly(int arg)
+        throws InterruptedException {
+        final Node node = addWaiter(Node.SHARED);
+        boolean failed = true;
+        try {
+            for (;;) {
+                final Node p = node.predecessor();
+                if (p == head) {//如果前面的节点是头节点
+                    int r = tryAcquireShared(arg);//如果许可大于0。通过release释放了许可
+                    if (r >= 0) {
+                        //阻塞在头节点的下一个节点则会设置自己为头结点。并唤醒自己的后继节点
+                        setHeadAndPropagate(node, r);//设置当前节点为头节点，并唤醒后继节点
+                        p.next = null; // help GC
+                        failed = false;
+                        return;
+                    }
+                }
+                if (shouldParkAfterFailedAcquire(p, node) &&
+                    parkAndCheckInterrupt())
+                    throw new InterruptedException();
+            }
+        } finally {
+            if (failed)
+                cancelAcquire(node);
+        }
+    }
+private void setHeadAndPropagate(Node node, int propagate) {
+        Node h = head; // Record old head for check below
+        setHead(node);
+        //h == null 队列初始化的时候
+        if (propagate > 0 || h == null || h.waitStatus < 0) {
+            Node s = node.next;
+            if (s == null || s.isShared())
+                doReleaseShared();
+        }
+    }
+```
+
+### 锁的释放
+
+```
+public final boolean releaseShared(int arg) {
+        if (tryReleaseShared(arg)) {
+            doReleaseShared();
+            return true;
+        }
+        return false;
+    }
+/**
+如果后继节点是 -1，预备状态，则唤醒后继节点。
+
+如果这个时候没有许可。h== head ,则跳出
+后节点阻塞于
+int r = tryAcquireShared(arg);//如果许可大于0 
+等待许可的位置，一直空循环。直到有释放。后继节点抢占head位置，唤醒自己的后续
+
+如果这个时候有许可，则不停的唤醒 后继节点
+
+如果h == head 则退出循环。
+**/
+private void doReleaseShared() {
+    for (;;) {
+        Node h = head;
+        if (h != null && h != tail) {
+            int ws = h.waitStatus;
+            if (ws == Node.SIGNAL) {
+                if (!compareAndSetWaitStatus(h, Node.SIGNAL, 0))
+                    continue;            // loop to recheck cases
+                unparkSuccessor(h);
+            }
+            else if (ws == 0 &&
+                     !compareAndSetWaitStatus(h, 0, Node.PROPAGATE))
+                continue;                // loop on failed CAS
+        }
+        if (h == head)                   // loop if head changed
+            break;
+    }
+}
+```
+
 通过countdownlatch来查看下公平锁的实现
 
 ```java
 CountDownLatch countDownLatch = new CountDownLatch();
-countDownLatch.await();
-countDownLatch.countDown();
+countDownLatch.await();//执行此方法后线程都阻塞
+countDownLatch.countDown();//执行此方法后。知道全局变量state=0 线程才全部启动
 ```
 
 ### 获取锁
@@ -344,7 +440,7 @@ countDownLatch.countDown();
 
 ```
 
-
+这里通过分析Semaphore 来分析共享锁
 
 ## conditon
 
