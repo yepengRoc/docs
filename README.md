@@ -1,3 +1,5 @@
+
+
 ## 学习笔记目录
 
 ​    记录自己学到的东西和转载一些自己认为比较好的博客
@@ -6,10 +8,13 @@
 
 ## typora快捷键
 
-1级标题			ctrl+1
-2级标题			ctrl+2
-3级标题			ctrl+3
+### windows
+
+1级标题			ctrl+1    
+2级标题			ctrl+2    
+3级标题			ctrl+3.   
 4级标题			ctrl+4
+
 5级标题			ctrl+5
 6级标题			ctrl+6
 段落			ctrl+0
@@ -31,4 +36,16 @@
 超链接			ctrl+k
 图像			ctrl+shift+i
 清楚格式		ctrl+\
+
+### mac快捷键
+
+
+
+
+
+
+
+### markdown中使用数学公式
+
+https://www.zybuluo.com/codeep/note/163962
 
