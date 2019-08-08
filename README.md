@@ -39,12 +39,6 @@
 
 ### mac快捷键
 
-
-
-
-
-
-
 ### markdown中使用数学公式
 
 https://www.zybuluo.com/codeep/note/163962
