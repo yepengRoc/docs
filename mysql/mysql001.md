@@ -17,3 +17,18 @@ SELECT * FROM people WHERE zipcode='95054' AND lastname LIKE '%etrunia%' AND add
 如果没有使用索引下推技术，则MySQL会通过zipcode='95054'从存储引擎中查询对应的数据，返回到MySQL服务端，然后MySQL服务端基于lastname LIKE '%etrunia%'和address LIKE '%Main Street%'来判断数据是否符合条件。
 如果使用了索引下推技术，则MYSQL首先会返回符合zipcode='95054'的索引，然后根据lastname LIKE '%etrunia%'和address LIKE '%Main Street%'来判断索引是否符合条件。如果符合条件，则根据该索引来定位对应的数据，如果不符合，则直接reject掉。有了索引下推优化，可以在有like条件查询的情况下，减少回表次数。
 
+## sql执行顺序
+
+```sql
+(8)SELECT (9) DISTINCT<select_list>
+(1) FROM<left_table>
+(3)<join_type>JOIN<right_table>
+(2)ON<join_codition>
+(4)WHERE<where_condition>
+(5)GROUP BY<group_by_list>
+(6)WITH{CUBE|ROLLUP}
+(7)HAVING<having_condition>
+(10)ORDER BY<order_by_list>
+(11)LIMIT<limit_number>
+```
+
