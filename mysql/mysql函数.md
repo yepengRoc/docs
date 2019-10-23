@@ -12,6 +12,7 @@ select to_days(now()) - to_days('20120512')
 
 ```mysql
 select datediff(now(),'20120512')
+select datediff('20171201','20170201');
 ```
 
 3、利用TIMESTAMPDIFF函数
@@ -99,6 +100,8 @@ select date_add(now(), interval 1 week);-加1周
 select date_add(now(), interval 1 month);-加1月
 select date_add(now(), interval 1 quarter);-加1季
 select date_add(now(), interval 1 year);-加1年
+ 实例：
+ select date_add('2027-10-09', interval -303 day);
 ```
 
 MySQL adddate(), addtime()函数，可以用date_add() 来替代。
@@ -109,3 +112,6 @@ MySQL date_sub() 日期时间函数 和date_add() 用法一致。
 
 MySQL 中subdate(),subtime()函数，建议，用date_sub()来替代。
 [原文链接](https://blog.csdn.net/asdkwq/article/details/77881850)
+
+
+
