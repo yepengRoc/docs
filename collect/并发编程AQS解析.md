@@ -364,7 +364,7 @@ private void setHeadAndPropagate(Node node, int propagate) {
 
 ### 锁的释放
 
-```
+```java
 public final boolean releaseShared(int arg) {
         if (tryReleaseShared(arg)) {
             doReleaseShared();
