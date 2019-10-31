@@ -58,7 +58,7 @@ isOnSyncQueue 分析
 
 ```java
 /**
-这个时候node 还是一个aqs节点
+这个时候node 还是一个aqs节点。判断是否在同步队列中
 **/
 final boolean isOnSyncQueue(Node node) {
         if (node.waitStatus == Node.CONDITION || node.prev == null)
@@ -115,8 +115,6 @@ final boolean transferAfterCancelledWait(Node node) {
     }
         
 ```
-
-
 
 
 
