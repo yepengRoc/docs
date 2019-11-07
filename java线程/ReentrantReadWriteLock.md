@@ -248,6 +248,12 @@ protected final boolean tryReleaseShared(int unused) {
                 else
                     firstReaderHoldCount--;
             } else {
+                /**
+                如果释放执行权的线程不是firstRead 则通过ThreadLocalHoldCounter
+                找到当前线程的HoldCounter对象。对对象内的竖向count 做减1操作
+                如果count值小于1 则移除ThreadLocalHoldCounter中维护的HoldCounter
+                对象
+                **/
                 HoldCounter rh = cachedHoldCounter;
                 if (rh == null || rh.tid != getThreadId(current))
                     rh = readHolds.get();
@@ -259,8 +265,19 @@ protected final boolean tryReleaseShared(int unused) {
                 }
                 --rh.count;
             }
-            for (;;) {
-                int c = getState();
+    		/**
+    		锁记数 state，在获取读锁的时候并没有进行增加操作，只是加了一个2的16次方.
+    		如果只有读锁 state - 2^16次方肯定为0.有一种情况不为0
+    		writeLock.lock
+    		readLock.lock
+    		//如果 写锁在这里执行 readLock.unlock 则会unlock失败
+    		//这个时候 state记录的有写锁的状态，导致nextc == 0 为false。
+    		writeLock.unlock
+    		//只有写锁释放之后，读锁才能释放。锁降级的问题
+    		readLock.unlock
+    		**/
+            for (;;) {//
+                int c = getState();//
                 int nextc = c - SHARED_UNIT;
                 if (compareAndSetState(c, nextc))
                     // Releasing the read lock has no effect on readers,
