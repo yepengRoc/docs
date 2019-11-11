@@ -250,7 +250,7 @@ protected final boolean tryReleaseShared(int unused) {
             } else {
                 /**
                 如果释放执行权的线程不是firstRead 则通过ThreadLocalHoldCounter
-                找到当前线程的HoldCounter对象。对对象内的竖向count 做减1操作
+                找到当前线程的HoldCounter对象。对对象内的holdcount 做减1操作
                 如果count值小于1 则移除ThreadLocalHoldCounter中维护的HoldCounter
                 对象
                 **/
@@ -287,5 +287,72 @@ protected final boolean tryReleaseShared(int unused) {
             }
         }
 
+```
+
+## writeLock实现
+
+```java
+Lock writeLock = rwLokc.writeLock();
+ writeLock.lock();
+ ...
+ writeLock.unlock();
+```
+
+### 加锁
+
+```java
+ public void lock() {
+            sync.acquire(1);
+ }
+ /**
+ 通过aqs的acquire 
+ 调用锁实现类的tryAcquire
+ **/
+protected final boolean tryAcquire(int acquires) {
+    /**
+     1当前有读锁或者持有写锁的线程不为当前获取锁的线程，则失败
+     2计数器达到最大值，则失败
+     **/
+    Thread current = Thread.currentThread();
+    //获取锁计数器
+    int c = getState();
+    //获取写锁的个数
+    int w = exclusiveCount(c);
+    if (c != 0) {
+        // (Note: if c != 0 and w == 0 then shared count != 0)
+        if (w == 0 || current != getExclusiveOwnerThread())
+            return false;
+        if (w + exclusiveCount(acquires) > MAX_COUNT)
+            throw new Error("Maximum lock count exceeded");
+        // 重入锁 记数
+        setState(c + acquires);
+        return true;
+    }
+    //非公平模式下一直阻塞。公平模式下看是否有前驱
+    if (writerShouldBlock() ||
+        !compareAndSetState(c, c + acquires))
+        return false;
+    setExclusiveOwnerThread(current);
+    return true;
+ }
+  
+```
+
+### 解锁
+
+```java
+/**
+锁持有次数减1。如果锁持有次数为0 则设置独享线程为0
+**/
+protected final boolean tryRelease(int releases) {
+    if (!isHeldExclusively())
+        throw new IllegalMonitorStateException();
+    int nextc = getState() - releases;
+    boolean free = exclusiveCount(nextc) == 0;
+    if (free)
+        setExclusiveOwnerThread(null);
+    setState(nextc);
+    return free;
+}
 ```
 
