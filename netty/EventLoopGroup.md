@@ -31,6 +31,12 @@ public interface Executor
 
 
 
+说明EventLoopGroup 也是一个线程池
+
+```
+public interface EventExecutorGroup extends ScheduledExecutorService, Iterable<EventExecutor> 
+```
+
 EventExecutor
 
 ```java
