@@ -6,3 +6,8 @@ https://www.oracle.com/webfolder/technetwork/tutorials/obe/java/gc01/index.html 
 
 
 
+https://docs.oracle.com/javase/8/docs/technotes/guides/vm/gctuning/ hotspot虚拟机介绍 jdk8
+
+https://docs.oracle.com/javase/specs/jvms/se8/html/ java虚拟机规范
+
+https://www.oracle.com/webfolder/technetwork/tutorials/obe/java/gc01/index.html  java虚拟机基本
