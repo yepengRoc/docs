@@ -2,7 +2,7 @@ https://docs.oracle.com/javase/9/gctuning/introduction-garbage-collection-tuning
 
 https://docs.oracle.com/javase/8/docs/technotes/guides/vm/gctuning/toc.html java8的优化
 
-https://www.oracle.com/webfolder/technetwork/tutorials/obe/java/gc01/index.html  g1介绍
+https://www.oracle.com/technetwork/tutorials/tutorials-1876574.html#ClearCT g1介绍
 
 
 
