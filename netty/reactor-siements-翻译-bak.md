@@ -1,25 +1,15 @@
-Reactor
-An Object Behavioral Pattern for
-Demultiplexing and Dispatching Handles for Synchronous Events
+# Reactor
+
+用于同步事件的多路分解和调度句柄的对象行为模式。（对同步事件进行分解，进行调度）
 
 
 
-Douglas C. Schmidt
-schmidt@cs.wustl.edu
-Department of Computer Science
-Washington University, St. Louis, MO
-1
+​	本文的早期版本出现在“程序设计的模式语言” ISBN 0- 201-6073-4一书中，该书由Jim Coplien和Douglas C. Schmidt编辑，由Addison-Wesley出版，1995年。
 
+## 1 Intent（意图）
 
+​	Reactor设计模式处理由一个或多个客户端同时交付给应用程序的服务请求。应用程序中的每个服务可能包含几种方法，并由负责分派特定于服务的请求的单独事件处理程序表示。由初始化调度程序执行的事件处理程序的调度，该调度程序管理已注册的事件处理程序。服务请求的多路分解是由同步事件多路分解器执行的。
 
-An earlier version of this paper appeared as a chapter in
-the book “Pattern Languages of Program Design” ISBN 0-
-201-6073-4, edited by Jim Coplien and Douglas C. Schmidt
-and published by Addison-Wesley, 1995.
-
-
-
-1 Intent
 The Reactor design pattern handles service requests that are
 delivered concurrently to an application by one or more
 clients. Each service in an application may consist of
@@ -262,64 +252,66 @@ nects to the logging server.
 
 
 This sequence of steps can be summarized as follows:
+
 1. The logging server (1) registers the Logging
-Acceptor with the Initiation Dispatcher to
-handle connection requests;
+   Acceptor with the Initiation Dispatcher to
+   handle connection requests;
 2. The logging server invokes the handle events
-method (2) of the Initiation Dispatcher;
+   method (2) of the Initiation Dispatcher;
 3. The Initiation Dispatcher invokes the syn-
-chronous event demultiplexing select (3) operation
-to wait for connectionrequestsorloggingdata to arrive;
+   chronous event demultiplexing select (3) operation
+   to wait for connectionrequestsorloggingdata to arrive;
 4. A client connects (4) to the logging server;
 5. The Logging Acceptor is no-
-tified by the Initiation Dispatcher (5) of the
-new connection request;
+   tified by the Initiation Dispatcher (5) of the
+   new connection request;
 6. The Logging Acceptor accepts (6) the new con-
-nection;
+   nection;
 
 
 
 7. The Logging Acceptor creates (7) a Logging
-  Handler to service the new client;
+   Handler to service the new client;
 
 8. Logging Handler registers (8) its socket handle
-  with the Initiation Dispatcher and instructs
-  the dispatcher to notify it when the socket becomes
-  “ready for reading.”
-  8.2.2 Client Sends Logging Record to a Reactive Log-
-  ging Server
-  The second scenario shows the sequence of steps that the
-  reactive logging server takes to service a logging record.
+   with the Initiation Dispatcher and instructs
+   the dispatcher to notify it when the socket becomes
+   “ready for reading.”
+   8.2.2 Client Sends Logging Record to a Reactive Log-
+   ging Server
+   The second scenario shows the sequence of steps that the
+   reactive logging server takes to service a logging record.
 
-  
+   
 
 This sequence of steps can be summarized as follows:
+
 1. The client sends (1) a logging record;
 
 2. The Initiation Dispatcher notifies (2) the as-
-  sociated Logging Handler when a client logging
-  record is queued on its socket handle by OS;
+   sociated Logging Handler when a client logging
+   record is queued on its socket handle by OS;
 
 3. The record is received (3) in a non-blocking manner
-  (steps 2 and 3 repeat until the logging record has been
-  received completely);
+   (steps 2 and 3 repeat until the logging record has been
+   received completely);
 
 4. The Logging Handler processes the logging
-  record and writes (4) it to the standard output.
+   record and writes (4) it to the standard output.
 
 5. The Logging Handler returns (5) control to the
-  Initiation Dispatcher’s event loop.
-  9 Implementation
-  This section describes how to implement the Reactor pattern
-  in C++. The implementation described below is influenced
-  by the reusable components provided in the ACE communi-
-  cation software framework [2].
-  9.1 Select the Synchronous Event Demulti-
-  plexer Mechanism
-  The Initiation Dispatcher uses a Synchronous
-  Event Demultiplexerto wait synchronouslyuntil one
+   Initiation Dispatcher’s event loop.
+   9 Implementation
+   This section describes how to implement the Reactor pattern
+   in C++. The implementation described below is influenced
+   by the reusable components provided in the ACE communi-
+   cation software framework [2].
+   9.1 Select the Synchronous Event Demulti-
+   plexer Mechanism
+   The Initiation Dispatcher uses a Synchronous
+   Event Demultiplexerto wait synchronouslyuntil one
 
-  
+   
 
 or more events occur. This is commonly implemented us-
 ing an OS event demultiplexing system call like select.
