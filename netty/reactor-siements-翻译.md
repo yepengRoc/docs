@@ -1,25 +1,15 @@
-Reactor
-An Object Behavioral Pattern for
-Demultiplexing and Dispatching Handles for Synchronous Events
+# Reactor
+
+用于同步事件的多路分解和调度句柄的对象行为模式。（对同步事件进行分解，进行调度）
 
 
 
-Douglas C. Schmidt
-schmidt@cs.wustl.edu
-Department of Computer Science
-Washington University, St. Louis, MO
-1
+​	本文的早期版本出现在“程序设计的模式语言” ISBN 0- 201-6073-4一书中，该书由Jim Coplien和Douglas C. Schmidt编辑，由Addison-Wesley出版，1995年。
 
+## 1 Intent（意图）
 
+​	Reactor设计模式处理由一个或多个客户端同时交付给应用程序的服务请求。应用程序中的每个服务可能包含几种方法，并由负责分派特定于服务的请求的单独事件处理程序表示。由初始化调度程序执行的事件处理程序的调度，该调度程序管理已注册的事件处理程序。服务请求的多路分解是由同步事件多路分解器执行的。
 
-An earlier version of this paper appeared as a chapter in
-the book “Pattern Languages of Program Design” ISBN 0-
-201-6073-4, edited by Jim Coplien and Douglas C. Schmidt
-and published by Addison-Wesley, 1995.
-
-
-
-1 Intent
 The Reactor design pattern handles service requests that are
 delivered concurrently to an application by one or more
 clients. Each service in an application may consist of
