@@ -1,104 +1,4 @@
-# Reactor
-
-用于同步事件的多路分解和调度句柄的对象行为模式。（对同步事件进行分解，进行调度）
-
-
-
-​	本文的早期版本出现在“程序设计的模式语言” ISBN 0- 201-6073-4一书中，该书由Jim Coplien和Douglas C. Schmidt编辑，由Addison-Wesley出版，1995年。
-
-## 1 Intent（意图）
-
-​	Reactor设计模式处理由一个或多个客户端同时交付给应用程序的服务请求。应用程序中的每个服务可能包含几种方法，并由负责分派特定于服务的请求的单独事件处理程序表示。由初始化调度程序执行的事件处理程序的调度，该调度程序管理已注册的事件处理程序。服务请求的多路分解是由同步事件多路分解器执行的。
-
-
-
-
-6 Solution  
-Integrate the synchronous demultiplexing of events and the
-dispatching of their corresponding event handlers that pro-
-cess the events. In addition, decouple the application-
-specific dispatching and implementation of services from
-the general-purpose event demultiplexing and dispatching
-mechanisms.  
-For each service the application offers, introduce a sep-
-arate Event Handler that processes certain types of
-events. All Event Handlers implement the same inter-
-face. Event Handlers register with an Initiation
-Dispatcher, which uses a Synchronous Event
-Demultiplexer to wait for events to occur. When events
-occur, the Synchronous Event Demultiplexer
-notifies the Initiation Dispatcher, which synchronously calls back to the Event Handler associated
-with the event. The Event Handler then dispatches the
-event to the method that implements the requested service.  
-7 Structure
-The key participants in the Reactor pattern include the following:  
-Handles  
-? Identify resources that are managed by an OS.
-These resources commonly include network connec-
-tions, open files, timers, synchronization objects, etc.
-Handles are used in the logging server to identify
-socket endpoints so that a Synchronous Event
-Demultiplexer can wait for events to occur on
-them. The two types of events the logging server is in-
-terestedin areconnectioneventsandreadevents,which
-representincomingclient connectionsandloggingdata,
-respectively. The logging server maintains a separate
-connection for each client. Every connection is repre-
-sented in the server by a socket handle.
-Synchronous Event Demultiplexer  
-? Blocks awaiting events to occur on a set of Handles.
-It returns when it is possible to initiate an operation
-on a Handle without blocking. A common demulti-
-plexer for I/O events is select [1], which is an event
-demultiplexing system call provided by the UNIX and
-Win32 OS platforms. The select call indicates which
-
-Handles can have operations invoked on them synchronously without blocking the application process.  
-Initiation Dispatcher  
-? Defines an interface for registering, removing, and
-dispatching Event Handlers. Ultimately, the
-Synchronous Event Demultiplexer is respon-
-sible for waiting until new events occur. When
-it detects new events, it informs the Initiation
-Dispatcher to call back application-specific event
-handlers. Common events include connection accep-
-tance events, data input and output events, and timeout
-events.  
-Event Handler
-? Specifies an interface consisting of a hook method [3]
-that abstractly represents the dispatching operation for
-service-specific events. This method must be implemented by application-specific services.  
-Concrete Event Handler
-? Implements the hook method, as well as the methods to process these events in an application-specific
-manner. Applications register Concrete Event
-Handlers with the Initiation Dispatcher to
-process certain types of events. When these events ar-
-rive, the Initiation Dispatcher calls back the
-hook method of the appropriate Concrete Event
-Handler.  
-There are two Concrete Event Handlers in the
-logging server: Logging Handler and Logging
-Acceptor. The Logging Handler is responsible for receiving and processing logging records. The
-Logging Acceptor creates and connects Logging
-Handlers that process subsequent logging records
-from clients.
-The structure of the participants of the Reactor pattern is
-illustrated in the following OMT class diagram:  
-
-8 Dynamics  
-8.1 General Collaborations  
-The following collaborations occur in the Reactor pattern:  
-? When an application registers a Concrete Event
-Handler with the Initiation Dispatcher the
-application indicates the type of event(s) this Event
-Handler wants the Initiation Dispatcher to
-notifyit aboutwhentheevent(s)occurontheassociated
-Handle.  
-? The Initiation Dispatcher requests each
-Event Handler to pass back its internal Handle.
-This Handle identifies the Event Handler to the
-OS.  
-? Afterall Event Handlersare registered,an application calls handle events to start the Initiation
+? Afterall Event Handlers are registered,an application calls handle events to start the Initiation
 Dispatcher’s event loop. At this point, the
 Initiation Dispatcher combines the Handle
 from each registered Event Handler and uses the
@@ -222,77 +122,117 @@ The select call indicates which Handle(s) are ready to
    completes.  
    The following C++ class illustrates the core methods on
    the Initiation Dispatcher’s public interface:
-   enum Event_Type
-   // = TITLE
-   // Types of events handled by the
-   // Initiation_Dispatcher.
-   //
-   // = DESCRIPTION
-   // These values are powers of two so
-   // their bits can be efficiently ‘‘or’d’’
-   // together to form composite values.
+   
+   ```c++
+    enum Event_Type
+      // = TITLE
+      // Types of events handled by the
+      // Initiation_Dispatcher.
+      //
+      // = DESCRIPTION
+      // These values are powers of two so
+      // their bits can be efficiently ‘‘or’d’’
+      // together to form composite values.
+      {
+      ACCEPT_EVENT = 01,
+      READ_EVENT = 02,
+      WRITE_EVENT = 04,
+      TIMEOUT_EVENT = 010,
+      SIGNAL_EVENT = 020,
+      CLOSE_EVENT = 040
+      };
+      class Initiation_Dispatcher
+      // = TITLE
+      // Demultiplex and dispatch Event_Handlers
+      // in response to client requests.
+   
    {
-   ACCEPT_EVENT = 01,
-   READ_EVENT = 02,
-   WRITE_EVENT = 04,
-   TIMEOUT_EVENT = 010,
-   SIGNAL_EVENT = 020,
-   CLOSE_EVENT = 040
+   public:
+   // Register an Event_Handler of a particular
+   // Event_Type (e.g., READ_EVENT, ACCEPT_EVENT,
+   // etc.).
+   int register_handler (Event_Handler *eh,
+   Event_Type et);
+   // Remove an Event_Handler of a particular
+   // Event_Type.
+   int remove_handler (Event_Handler *eh,
+   Event_Type et);
+   // Entry point into the reactive event loop.
+   int handle_events (Time_Value *timeout = 0);
    };
-   class Initiation_Dispatcher
-   // = TITLE
-   // Demultiplex and dispatch Event_Handlers
-   // in response to client requests.
-
-{
-public:
-// Register an Event_Handler of a particular
-// Event_Type (e.g., READ_EVENT, ACCEPT_EVENT,
-// etc.).
-int register_handler (Event_Handler *eh,
-Event_Type et);
-// Remove an Event_Handler of a particular
-// Event_Type.
-int remove_handler (Event_Handler *eh,
-Event_Type et);
-// Entry point into the reactive event loop.
-int handle_events (Time_Value *timeout = 0);
-};
-Implement the necessary synchronization mechanisms:
-If the Reactor pattern is used in an application with only one
-thread of control it is possible to eliminate all synchronization. In this case, the Initiation Dispatcher serializes the Event Handler handle event hooks within
-the application’s process.
-However, the Initiation Dispatcher can also
-serve as a central event dispatcher in multi-threaded applications. In this case, critical sections within the Initiation
-Dispatcher must be serialized to prevent race conditions
-when modifying or activating shared state variables (such as
-the table holdingthe Event Handlers). A common technique for preventing race conditions uses mutual exclusion
-mechanisms like semaphores or mutex variables.
-To prevent self-deadlock, mutual exclusion mechanisms
-can use recursive locks [4]. Recursive locks hold prevent
-deadlock when locks are held by the same thread across
-Event Handler hook methods within the Initiation
-Dispatcher. A recursive lock may be re-acquired
-by the thread that owns the lock without blocking the
-thread. This property is important since the Reactor’s
-handle eventsmethodcallsbackonapplication-specific
-Event Handlers. Application hook method code may
-subsequently re-enter the Initiation Dispatcher
-via its register handler and remove handler
-methods.  
-9.3 Determine the Type of the Dispatching
-Target  
-Two different types of Event Handlers can be as-
-sociated with a Handle to serve as the target of an
-Initiation Dispatcher’s dispatching logic. Implementations of the Reactor pattern can choose either one or
-both of the following dispatching alternatives:
-Event Handler objects: A common way to associate an
-Event Handler with a Handle is to make the Event
-Handleranobject. Forinstance,theReactorpatternimple-
-mentation shown in Section 7 registers Event Handler
-subclass objects with an Initiation Dispatcher.
-Using an object as the dispatchingtarget makesit convenient
-to subclass Event Handlersin orderto reuse and extend
+   ```
+   
+   Implement the necessary synchronization mechanisms:
+   If the Reactor pattern is used in an application with only one
+   thread of control it is possible to eliminate all synchronization. In this case, the Initiation Dispatcher serializes the Event Handler handle event hooks within
+   the application’s process.
+   However, the Initiation Dispatcher can also
+   serve as a central event dispatcher in multi-threaded applications. In this case, critical sections within the Initiation
+   Dispatcher must be serialized to prevent race conditions
+   when modifying or activating shared state variables (such as
+   the table holdingthe Event Handlers). A common technique for preventing race conditions uses mutual exclusion
+   mechanisms like semaphores or mutex variables.
+   To prevent self-deadlock, mutual exclusion mechanisms
+   can use recursive locks [4]. Recursive locks hold prevent
+   deadlock when locks are held by the same thread across
+   Event Handler hook methods within the Initiation
+   Dispatcher. A recursive lock may be re-acquired
+   by the thread that owns the lock without blocking the
+   thread. This property is important since the Reactor’s
+   handle eventsmethodcallsbackonapplication-specific
+   Event Handlers. Application hook method code may
+   subsequently re-enter the Initiation Dispatcher
+   via its register handler and remove handler
+   methods.  
+   9.3 Determine the Type of the Dispatching
+   Target  
+   Two different types of Event Handlers can be as-
+   sociated with a Handle to serve as the target of an
+   Initiation Dispatcher’s dispatching logic. Implementations of the Reactor pattern can choose either one or
+   both of the following dispatching alternatives:
+   Event Handler objects: A common way to associate an
+   Event Handler with a Handle is to make the Event
+   Handleranobject. Forinstance,theReactorpatternimple-
+   mentation shown in Section 7 registers Event Handler
+   subclass objects with an Initiation Dispatcher.
+   Using an object as the dispatchingtarget makesit convenient
+   to subclass Event Handlersin orderto reuse and extend
+   
+   Implement the necessary synchronization mechanisms:
+   If the Reactor pattern is used in an application with only one
+   thread of control it is possible to eliminate all synchronization. In this case, the Initiation Dispatcher serializes the Event Handler handle event hooks within
+   the application’s process.
+   However, the Initiation Dispatcher can also
+   serve as a central event dispatcher in multi-threaded applications. In this case, critical sections within the Initiation
+   Dispatcher must be serialized to prevent race conditions
+   when modifying or activating shared state variables (such as
+   the table holdingthe Event Handlers). A common technique for preventing race conditions uses mutual exclusion
+   mechanisms like semaphores or mutex variables.
+   To prevent self-deadlock, mutual exclusion mechanisms
+   can use recursive locks [4]. Recursive locks hold prevent
+   deadlock when locks are held by the same thread across
+   Event Handler hook methods within the Initiation
+   Dispatcher. A recursive lock may be re-acquired
+   by the thread that owns the lock without blocking the
+   thread. This property is important since the Reactor’s
+   handle eventsmethodcallsbackonapplication-specific
+   Event Handlers. Application hook method code may
+   subsequently re-enter the Initiation Dispatcher
+   via its register handler and remove handler
+   methods.  
+   9.3 Determine the Type of the Dispatching
+   Target  
+   Two different types of Event Handlers can be as-
+   sociated with a Handle to serve as the target of an
+   Initiation Dispatcher’s dispatching logic. Implementations of the Reactor pattern can choose either one or
+   both of the following dispatching alternatives:
+   Event Handler objects: A common way to associate an
+   Event Handler with a Handle is to make the Event
+   Handleranobject. Forinstance,theReactorpatternimple-
+   mentation shown in Section 7 registers Event Handler
+   subclass objects with an Initiation Dispatcher.
+   Using an object as the dispatchingtarget makesit convenient
+   to subclass Event Handlersin orderto reuse and extend
 
 existing components. In addition, objects integrate the state
 and methods of a service into a single component.
@@ -319,6 +259,8 @@ case, the type of the event that has occurred is passed as a
 parameter to the method.
 The following C++ abstract base class illustrates the
 single-method interface:
+
+```c++
 class Event_Handler
 // = TITLE
 // Abstract base class that serves as the
@@ -332,6 +274,8 @@ virtual int handle_event (Event_Type et) = 0;
 // I/O Handle.
 virtual Handle get_handle (void) const = 0;
 };
+```
+
 The advantage of the single-method interface is that it is
 possible to add new types of events without changing the interface. However,thisapproachencouragesthe use of switch
 statements in the subclass’s handle event method,which
@@ -343,6 +287,18 @@ or handle timeout).
 The following C++ abstract base class illustrates the
 single-method interface:  
 
+The advantage of the single-method interface is that it is
+possible to add new types of events without changing the interface. However,thisapproachencouragesthe use of switch
+statements in the subclass’s handle event method,which
+limits its extensibility.
+A multi-method interface: Another way to implement the
+Event Handler interface is to define separate virtual hook methods for each
+type of event (such as handle input, handle output,
+or handle timeout).
+The following C++ abstract base class illustrates the
+single-method interface:  
+
+```c++
 class Event_Handler
 {
 public:
@@ -358,6 +314,9 @@ virtual int handle_close (void) = 0;
 // I/O Handle.
 virtual Handle get_handle (void) const = 0;
 };  
+
+```
+
 The benefit of the multi-method interface is that it is
 easy to selectively override methods in the base class and
 avoid further demultiplexing, e.g., via switch or if statements, in the hook method. However, it requires the framework developer to anticipate the set of Event Handler
@@ -412,8 +371,9 @@ establish the connection.
 A Logging Acceptor passively accepts connections from client applications and creates client-specific
 Logging Handler objects, which receive and process
 logging records from clients. The key methods and data
-membersintheLogging Acceptorclass aredefinedbe-
-low:  
+members in the Logging Acceptor class are defined below:  
+
+```c++
 class Logging_Acceptor : public Event_Handler
 // = TITLE
 // Handles client connection requests.
@@ -438,7 +398,22 @@ private:
 // Socket factory that accepts client
 // connections.
 SOCK_Acceptor acceptor_;
-};  
+};
+```
+
+
+The Logging Acceptor class inherits from the Event
+Handler base class. This enables an application to reg-
+ister the Logging Acceptor with an Initiation
+Dispatcher.
+The Logging Acceptor also contains an instance of
+SOCK Acceptor. This is a concrete factory that enables
+the Logging Acceptorto accept connectionrequestson
+a passive mode socket that is listening to a communication
+port. When a connection arrives from a client, the SOCK
+Acceptor accepts the connection and produces a SOCK
+Stream object. Henceforth, the SOCK Stream object is
+
 The Logging Acceptor class inherits from the Event
 Handler base class. This enables an application to reg-
 ister the Logging Acceptor with an Initiation
@@ -463,6 +438,8 @@ implemented using TCP.
 The constructor for the Logging Acceptor registers
 itself with the Initiation Dispatcher Singleton [5]
 for ACCEPT events, as follows:  
+
+```c++
 Logging_Acceptor::Logging_Acceptor
 (const INET_Addr &addr)
 : acceptor_ (addr)
@@ -489,6 +466,9 @@ acceptor_.accept (new_connection);
 Logging_Handler *handler =
 new Logging_Handler (new_connection);
 }  
+
+```
+
 The handle event method invokes the accept method
 of the SOCK Acceptor to passively establish a SOCK
 Stream. Once the SOCK Stream is connected with
@@ -575,6 +555,8 @@ Concrete Event Handler hook methods, which ac-
 cept connections and receive and process logging records.
 The main entry point into the logging server is defined as
 follows:  
+
+```c++
 // Server port number.
 const u_short PORT = 10000;
 int
@@ -593,6 +575,9 @@ handle_events ();
 /* NOTREACHED */
 return 0;
 }  
+
+```
+
 The main program creates a Logging Acceptor, whose
 constructor initializes it with the port number of the log-
 ging server. The program then enters its main event-loop.
