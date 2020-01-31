@@ -28,9 +28,7 @@ The following interaction diagram illustrates the collaboration between applicat
 8.2 Collaboration Scenarios  
 The collaborationswithin the Reactor pattern for the logging
 server can be illustrated with two scenarios. These scenarios
-show howa loggingserver designedusingreactiveeventdis-
-patching handles connection requests and logging data from
-multiple clients.  
+ show howa logging server designed using reactive event dispatching handles connection requests and logging data from multiple clients.  
 8.2.1 Client Connects to a Reactive Logging Server
 The first scenario shows the steps taken when a client con-
 nects to the logging server.  
