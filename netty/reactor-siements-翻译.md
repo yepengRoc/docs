@@ -107,3 +107,38 @@ Reactor模式的主要组成包括以下部分：
 
 ### 8.2 协作方案
 
+​		可以使用两种方案来说明用于日志记录服务器的Reactor模式内的协作。这些方案说明了使用反应式事件分派设计的日志记录服务器如何处理连接请求和记录来自多个客户端的数据。
+
+#### 8.2.1 客户端连接到反应（多路复用）日志服务器。
+
+第一种情况显示了客户端连接到日志记录服务器时采取的步骤。
+
+![image-20200131180357156](../image/image-20200131180357156.png)
+
+此步骤顺序可以总结如下：
+
+1. 日志记录服务器（1）向Initiation Dispatcher注册Logging Acceptor 以处理连接请求；
+2. 日志记录服务器调用Initiation Dispatcher的handle事件方法（2）。
+3. Initiation Dispatcher调用同步事件多路分解选择（3）操作，以等待连接请求或日志记录数据到达；
+4. 客户端将（4）连接到日志服务器；
+5. Initiation Dispatcher（5）将新的连接请求通知Logging Acceptor；
+6. Logging Acceptor接受（6）新连接；
+7. Logging Acceptor创建（7）日志处理程序以服务新客户端；
+8. Logging Handler将其套接字句柄注册（8）到Initiation Dispatcher，并指示分配器在套接字变为“准备读取”时通知它。
+
+#### 8.2.2客户端将日志记录发送到多路复用日志服务器
+
+第二种情况显示了反应式日志服务器为日志记录提供服务所采取的步骤顺序。
+
+![image-20200131182749815](../image/image-20200131182749815.png)
+
+此步骤顺序可以总结如下：
+
+1. 客户端发送（1）日志记录；
+2. 当客户端日志记录由OS在其套接字句柄上排队时，Initiation Dispatcher通知（2）关联的Logging Handler；
+3. 以非阻塞方式接收（3）记录（重复步骤2和3，直到完全接收到日志记录为止）；
+4. Logging Handler处理日志记录，并将其写入（4）到标准输出中。
+5. Logging Handler将（5）控制权返回到Initiation Dispatcher的事件循环。
+
+## 9实现
+
