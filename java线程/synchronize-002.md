@@ -2,7 +2,7 @@ https://hg.openjdk.java.net/jdk8u/jdk8u/hotspot/file/95bccc5efc6a/src/share/vm/o
 
 markOop描述对象的头
 
-请注意，标记不是真正的标记，而只是一个word(32 位虚拟你一个word 是4 byte 32bit;64位虚拟机 一个word 是8byte 64bit)。
+请注意，标记不是真正的标记，而只是一个word(32 位虚拟机一个word 是4 byte 32bit;64位虚拟机 一个word 是8byte 64bit)。
 
 由于历史原因，它被放置在oop层次中
 
