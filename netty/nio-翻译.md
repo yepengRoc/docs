@@ -1,3 +1,7 @@
+原文地址：
+
+[chrome-extension://ikhdkkncnoglghljlkmcimlnlhkeamad/pdf-viewer/web/viewer.html?file=http%3A%2F%2Fgee.cs.oswego.edu%2Fdl%2Fcpjslides%2Fnio.pdf](chrome-extension://ikhdkkncnoglghljlkmcimlnlhkeamad/pdf-viewer/web/viewer.html?file=http%3A%2F%2Fgee.cs.oswego.edu%2Fdl%2Fcpjslides%2Fnio.pdf)
+
 # java可扩展IO
 
 ## 大纲
@@ -87,6 +91,7 @@ static class Handler implements Runnable {
   - 非阻塞读写
   - （与感测到的IO事件相关的调度任务） 通过IO事件的监测，来触发相应的调度任务
 - 无限变体（一系列的事件驱动设计，可能会产生很多的变体）
+  
   - 事件驱动设计系列
 
 ## 事件驱动设计
@@ -300,8 +305,9 @@ class Handler { // ...
 ### 多线程设计
 
 - 从策略上添加线程以实现可伸缩性
-  - 主要适用于多处理器
-
+  
+- 主要适用于多处理器
+  
 - 工作线程
 
   - Reactors 应迅速触发处理程序

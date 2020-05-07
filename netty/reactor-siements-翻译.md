@@ -1,3 +1,7 @@
+原文地址：
+
+[http://www.dre.vanderbilt.edu/~schmidt/PDF/reactor-siemens.pdf](https://links.jianshu.com/go?to=http%3A%2F%2Fwww.dre.vanderbilt.edu%2F~schmidt%2FPDF%2Freactor-siemens.pdf)
+
 # Reactor
 
 用于同步事件的多路分解和调度句柄的对象行为模式。（对同步事件进行分解，进行调度）
@@ -8,366 +12,180 @@
 
 ## 1 Intent（意图）
 
-​	Reactor设计模式处理由一个或多个客户端同时交付给应用程序的服务请求。应用程序中的每个服务可能包含几种方法，并由负责分派特定于服务的请求的单独事件处理程序表示。由初始化调度程序执行的事件处理程序的调度，该调度程序管理已注册的事件处理程序。服务请求的多路分解是由同步事件多路分解器执行的。
+​		Reactor设计模式处理由一个或多个客户端同时交付给应用程序的服务请求。应用程序中的每个服务可能包含几种方法，并由负责分派特定于服务的请求的单独事件处理程序表示。由初始化调度程序执行的事件处理程序的调度，该调度程序管理已注册的事件处理程序。服务请求的多路分解是由同步事件多路分解器执行的。
 
-The Reactor design pattern handles service requests that are
-delivered concurrently to an application by one or more
-clients. Each service in an application may consist of
-serveral methods and is represented by a separate event han-
-dler that is responsible for dispatching service-specific re-
-quests. Dispatchingof eventhandlersis performedby an ini-
-tiation dispatcher, which manages the registered event han-
-dlers. Demultiplexing of service requests is performed by a
-synchronousevent demultiplexer.
-
-2 Also Known As
-Dispatcher, Notifier
+## 2 也称为调度，通知程序
 
 
 
-3 Example
-To illustrate the Reactor pattern, consider the event-driven
-server for a distributed logging service shown in Figure 1.
-Clientapplicationsusetheloggingservicetorecordinforma-
-tion about their status in a distributed environment. This sta-
-tus information commonly includes error notifications, de-
-bugging traces, and performance reports. Logging records
-are sent to a central logging server, which can write the
-recordstovariousoutputdevices,suchasaconsole,aprinter,
-a file, or a network management database.
+## 3 Example（例子）
+
+​	为了说明Reactor模式，请考虑图1所示的事件驱动服务器的分布式日志记录服务。客户端应用程序使用日志记录服务来记录有关其在分布式环境中的状态的信息。该状态信息通常包括错误通知，调试跟踪和性能报告。日志记录被发送到中央日志服务器，该服务器可以将记录写入各种输出设备，例如控制台，打印机，文件或网络管理数据库。
 
 ![image-20200109184826687](image/image-20200109184826687.png)
 
-Figure 1: Distributed Logging Service
+​																		图 1: 分布式日志服务
 
+​		图1中所示的日志记录服务器处理客户端发送的日志记录和连接请求。日志记录和连接请求可以同时到达多个句柄。句柄标识OS内管理的网络通信资源。 
 
+​		日志记录服务器使用面向连接的协议（例如TCP [1]）与客户端进行通信。想要记录数据的客户端必须首先将连接请求发送到服务器。服务器使用句柄工厂等待这些连接请求，该工厂监听客户端已知的地址。当连接请求到达时，句柄工厂通过创建代表连接端点的新句柄来建立客户端与服务器之间的连接。该句柄返回到服务器，然后服务器等待客户端服务请求到达该句柄。客户端连接后，他们可以将日志记录同时发送到服务器。服务器通过连接的套接字句柄接收这些记录。
 
-The logging server shown in Figure 1 handles logging
-records and connection requests sent by clients. Logging
-records and connection requests can arrive concurrently on
-multiple handles. A handle identifies network communica-
-tion resources managed within an OS.
-The logging server communicates with clients using a
-connection-oriented protocol, such as TCP [1]. Clients that
-want to log data must first send a connection request to the
+​		开发并发日志服务器的最直观的方法也许是使用可以同时处理多个客户端的多个线程，如图2所示。该方法同步接受网络连接并产生“每个连接线程”以处理客户端日志记录。
 
-server. The server waits for these connection requests using
-a handle factory that listens on an address known to clients.
-When a connection request arrives, the handle factory es-
-tablishes a connection between the client and the server by
-creating a new handle that represents an endpoint of the con-
-nection. This handle is returned to the server, which then
-waits forclient service requeststo arriveonthe handle. Once
-clients are connected, they can send logging records concur-
-rently to the server. The server receives these records via the
-connected socket handles.
-Perhaps the most intuitive way to develop a concurrent
-logging server is to use multiple threads that can process
-multiple clients concurrently, as shown in Figure 2. This
-approach synchronously accepts network connections and
-spawns a “thread-per-connection” to handle client logging
-records.
+​	<img src="../image/image-20200131121127683.png" alt="image-20200131121127683" style="zoom:70%;" />
 
-However,usingmulti-threadingto implementthe process-
-ing of logging records in the server fails to resolve the fol-
-lowing forces:
-? Efficiency: Threadingmaylead topoorperformancedue
-to context switching, synchronization, and data movement
+​										图2：多线程日志记录服务器
 
-Programming simplicity: Threading may require com-
-plex concurrency control schemes;
-? Portability: Threading is not available on all OS plat-
-forms.
-As a result of these drawbacks, multi-threading is often not
-the most efficient nor the least complexsolution to developa
-concurrent logging server.
-4 Context
-A server application in a distributed system that receives
-events from one or more clients concurrently.
-5 Problem
-Server applications in a distributed system must handle mul-
-tiple clients that send them service requests. Before invok-
-ing a specific service, however, the server application must
-demultiplex and dispatch each incoming request to its corre-
-sponding service provider. Developing an effective server
-mechanisms for demultiplexing and dispatching client re-
-quests requires the resolution of the following forces:
-? Availability: The server must be available to handle in-
-coming requests even if it is waiting for other requests to ar-
-rive. In particular, a server must not block indefinitely han-
-dling any single source of events at the exclusion of other
-event sources since this may significantly delay the respon-
-seness to other clients.
-? Efficiency: A server must minimize latency, maximize
-throughput, and avoid utilizing the CPU(s) unnecessarily.
-? Programming simplicity: The design of a server should
-simplify the use of suitable concurrency strategies.
+​		但是，使用多线程在服务器中实现日志记录的处理无法解决以下问题：  
 
-Adaptability: Integrating new or improved services,
-such as changing message formats or adding server-side
-caching, should incur minimal modifications and mainte-
-nance costs for existing code. For instance, implementing
-new application services should not require modifications
-to the generic event demultiplexing and dispatching mech-
-anisms.
-? Portability: Porting a server to a new OS platform
-should not require significant effort.
-6 Solution
-Integrate the synchronous demultiplexing of events and the
-dispatching of their corresponding event handlers that pro-
-cess the events. In addition, decouple the application-
-specific dispatching and implementation of services from
-the general-purpose event demultiplexing and dispatching
-mechanisms.
-For each service the application offers, introduce a sep-
-arate Event Handler that processes certain types of
-events. All Event Handlers implement the same inter-
-face. Event Handlers register with an Initiation
-Dispatcher, which uses a Synchronous Event
-Demultiplexer to wait for events to occur. When events
-occur, the Synchronous Event Demultiplexer
-notifies the Initiation Dispatcher, which syn-
-chronously calls back to the Event Handler associated
-with the event. The Event Handler then dispatches the
-event to the method that implements the requested service.
-7 Structure
-The key participants in the Reactor pattern include the fol-
-lowing:
-Handles
-? Identify resources that are managed by an OS.
-These resources commonly include network connec-
-tions, open files, timers, synchronization objects, etc.
-Handles are used in the logging server to identify
-socket endpoints so that a Synchronous Event
-Demultiplexer can wait for events to occur on
-them. The two types of events the logging server is in-
-terestedin areconnectioneventsandreadevents,which
-representincomingclient connectionsandloggingdata,
-respectively. The logging server maintains a separate
-connection for each client. Every connection is repre-
-sented in the server by a socket handle.
-Synchronous Event Demultiplexer
-? Blocks awaiting events to occur on a set of Handles.
-It returns when it is possible to initiate an operation
-on a Handle without blocking. A common demulti-
-plexer for I/O events is select [1], which is an event
-demultiplexing system call provided by the UNIX and
-Win32OSplatforms. Theselectcallindicateswhich
+- 效率：线程可能由于上下文切换，同步和数据移动而导致性能不佳
 
-Handles can have operations invoked on them syn-
-chronously without blocking the application process.
-Initiation Dispatcher
-? Defines an interface for registering, removing, and
-dispatching Event Handlers. Ultimately, the
-Synchronous Event Demultiplexer is respon-
-sible for waiting until new events occur. When
-it detects new events, it informs the Initiation
-Dispatcher to call back application-specific event
-handlers. Common events include connection accep-
-tance events, data input and output events, and timeout
-events.
-Event Handler
-? Specifies an interface consisting of a hook method [3]
-that abstractly represents the dispatching operation for
-service-specific events. This method must be imple-
-mented by application-specific services.
-Concrete Event Handler
-? Implements the hook method, as well as the meth-
-ods to process these events in an application-specific
-manner. Applications register Concrete Event
-Handlers with the Initiation Dispatcher to
-process certain types of events. When these events ar-
-rive, the Initiation Dispatcher calls back the
-hook method of the appropriate Concrete Event
-Handler.
-There are two Concrete Event Handlers in the
-logging server: Logging Handler and Logging
-Acceptor. The Logging Handler is responsi-
-ble for receiving and processing logging records. The
-Logging Acceptor creates and connects Logging
-Handlers that process subsequent logging records
-from clients.
-The structure of the participants of the Reactor pattern is
-illustrated in the following OMT class diagram:
+- 编程简单：线程可能需要复杂的并发控制方案
 
+- 可移植性：线程并非在所有OS平台上都可用。   
 
+  由于这些缺点，多线程通常不是开发并发日志服务器的最有效或最不复杂的解决方案
 
-8 Dynamics
-8.1 General Collaborations
-The following collaborations occur in the Reactor pattern:
-? When an application registers a Concrete Event
-Handler with the Initiation Dispatcher the
-application indicates the type of event(s) this Event
-Handler wants the Initiation Dispatcher to
-notifyit aboutwhentheevent(s)occurontheassociated
-Handle.
-? The Initiation Dispatcher requests each
-Event Handler to pass back its internal Handle.
-This Handle identifies the Event Handler to the
-OS.
-? Afterall Event Handlersare registered,an applica-
-tion calls handle events to start the Initiation
-Dispatcher’s event loop. At this point, the
-Initiation Dispatcher combines the Handle
-from each registered Event Handler and uses the
-Synchronous Event Demultiplexer to wait
-for events to occur on these Handles. For in-
-stance, the TCP protocol layer uses the select syn-
-chronous event demultiplexing operation to wait for
-client logging record events to arrive on connected
-socket Handles.
-? The Synchronous Event Demultiplexer no-
-tifies the Initiation Dispatcher when a
-Handle corresponding to an event source becomes
-“ready,” e.g., that a TCP socket is “ready for reading.”
-? The Initiation Dispatcher triggers Event
-Handler hook method in response to events on
-the ready Handles. When events occur, the
-Initiation Dispatcher uses the Handles ac-
-tivated by the event sources as “keys” to locate and
-dispatch the appropriate Event Handler’s hook
-method.
-? The Initiation Dispatcher calls back to
-the handle event hook method of the Event
-Handler to perform application-specific functionality
-in response to an event. The type of event that occurred
-can be passed as a parameter to the method and used
-internally by this method to perform additional service-
-specific demultiplexing and dispatching. An alternative
-dispatching approach is described in Section 9.4.
-The following interaction diagram illustrates the collabo-
-ration between application code and participants in the Re-
-actor pattern:
+## 4上下文（Context）
 
-8.2 Collaboration Scenarios
-The collaborationswithin the Reactor pattern for the logging
-server can be illustrated with two scenarios. These scenarios
-show howa loggingserver designedusingreactiveeventdis-
-patching handles connection requests and logging data from
-multiple clients.
-8.2.1 Client Connects to a Reactive Logging Server
-The first scenario shows the steps taken when a client con-
-nects to the logging server.
+​		分布式系统中的服务器应用程序，同时从一个或多个客户端接收事件  
 
+## 5问题
 
+​		但是，在调用特定服务之前，服务器应用程序必须解复用并将每个传入请求分派到其相应的服务提供者。开发有效的服务器机制以多路分解和分发客户端请求，需要解决以下问题：
 
-This sequence of steps can be summarized as follows:
-1. The logging server (1) registers the Logging
-Acceptor with the Initiation Dispatcher to
-handle connection requests;
-2. The logging server invokes the handle events
-method (2) of the Initiation Dispatcher;
-3. The Initiation Dispatcher invokes the syn-
-chronous event demultiplexing select (3) operation
-to wait for connectionrequestsorloggingdata to arrive;
-4. A client connects (4) to the logging server;
-5. The Logging Acceptor is no-
-tified by the Initiation Dispatcher (5) of the
-new connection request;
-6. The Logging Acceptor accepts (6) the new con-
-nection;
+- 可用性：即使正在等待其他请求到达，服务器也必须能够处理传入的请求。特别是，服务器不得在排除其他事件源的情况下无限期地阻塞任何单一事件源，因为这可能会大大延迟对其他客户端的响应。
+- 效率：服务器必须最小化延迟，最大化吞吐量，并避免不必要地利用CPU。
+- 编程简单：服务器的设计应简化适当的并发策略的使用
+- 适配性：集成新的或改进的服务，例如更改消息格式或添加服务器端缓存，应该为现有代码带来最少的修改和维护成本。例如，实现新的应用程序服务不应要求修改通用事件多路分解和调度机制。
+- 可移植性：将服务器移植到新的OS平台上不需要花费很多精力
 
+## 6解
 
+​		集成事件的同步多路分解和处理事件的相应事件处理程序的分派。此外，应将服务的特定于应用程序的调度和实现与通用事件多路分解和调度机制分离开。对于应用程序提供的每种服务，请引入一个单独的事件处理程序来处理某些类型的事件。所有事件处理程序都实现相同的接口。事件处理程序向启动分派器注册，该分派器使用同步事件多路分解器等待事件发生。当事件发生时，同步事件多路分解器通知启动调度程序，该调度程序同步地回调与该事件关联的事件处理程序。然后，事件处理程序将事件调度到实现所请求服务的方法。
 
-7. The Logging Acceptor creates (7) a Logging
-  Handler to service the new client;
+## 7结构
 
-8. Logging Handler registers (8) its socket handle
-  with the Initiation Dispatcher and instructs
-  the dispatcher to notify it when the socket becomes
-  “ready for reading.”
-  8.2.2 Client Sends Logging Record to a Reactive Log-
-  ging Server
-  The second scenario shows the sequence of steps that the
-  reactive logging server takes to service a logging record.
+Reactor模式的主要组成包括以下部分：
 
-  
+### Handles（句柄）
 
-This sequence of steps can be summarized as follows:
-1. The client sends (1) a logging record;
+- 识别由操作系统管理的资源。这些资源通常包括网络连接，打开文件，计时器，同步对象等。在日志记录服务器中使用句柄来标识套接字端点，以便同步事件多路分解器可以等待事件发生在它们上。日志记录服务器感兴趣的两种事件是连接事件和读取事件，它们分别表示传入的客户端连接和日志记录数据。日志记录服务器为每个客户端维护一个单独的连接。每个连接都由套接字句柄表示在服务器中。
 
-2. The Initiation Dispatcher notifies (2) the as-
-  sociated Logging Handler when a client logging
-  record is queued on its socket handle by OS;
+### Synchronous Event Demultiplexer（同步时间多路分解器）
 
-3. The record is received (3) in a non-blocking manner
-  (steps 2 and 3 repeat until the logging record has been
-  received completely);
+- 阻止等待事件发生在一组句柄上。当可以在句柄上初始化（启动）操作而不会阻塞时，它将返回。select [1]是用于I / O事件的常见多路复用器，它是UNIX和Win32 OS平台提供的事件解复用系统调用。选择呼叫指示哪个句柄可以同步调用操作，而不会阻塞应用程序进程。
 
-4. The Logging Handler processes the logging
-  record and writes (4) it to the standard output.
+### Event Handler （事件处理程序）
 
-5. The Logging Handler returns (5) control to the
-  Initiation Dispatcher’s event loop.
-  9 Implementation
-  This section describes how to implement the Reactor pattern
-  in C++. The implementation described below is influenced
-  by the reusable components provided in the ACE communi-
-  cation software framework [2].
-  9.1 Select the Synchronous Event Demulti-
-  plexer Mechanism
-  The Initiation Dispatcher uses a Synchronous
-  Event Demultiplexerto wait synchronouslyuntil one
+- 指定一个由钩子方法[3]组成的接口，该方法抽象地表示特定于服务的事件的调度操作。此方法必须由特定于应用程序的服务来实现。
 
-  
+### Concrete Event Handler（具体的事件处理）
 
-or more events occur. This is commonly implemented us-
-ing an OS event demultiplexing system call like select.
-The select call indicates which Handle(s) are ready to
-perform I/O operations without blocking the OS process in
-which the application-specific service handlers reside. In
-general, the Synchronous Event Demultiplexer
-is based upon existing OS mechanisms, rather than devel-
-oped by implementers of the Reactor pattern.
-9.2 Develop an Initiation Dispatcher
-The following are the steps necessary to develop the
-Initiation Dispatcher:
-Implement the Event Handler table: A Initiation
-Dispatcher maintains a table of Concrete Event
-Handlers. Therefore, the Initiation Dispatcher
-provides methods to register and remove the handlers from
-this table at run-time. This table can be implemented in var-
-ious ways, e.g., using hashing, linear search, or direct index-
-ing if handles are represented as a contiguous range of small
-integral values.
-Implement the event loop entry point: The entry point
-into the event loop of the Initiation Dispatcher
-should be provided by a handle events method. This
-method controls the Handle demultiplexing provided by
-the Synchronous Event Demultiplexer, as well as
-performing Event Handler dispatching. Often, the main
-event loop of the entire applicationis controlledby this entry
-point.
-When events occur, the Initiation Dispatcher
-returns from the synchronous event demultiplexing call
-and “reacts” by dispatching the Event Handler’s
-handle event hook method for each handle that is
-“ready.” This hook method executes user-defined code and
-returns control to the Initiation Dispatcher when it
-completes.
-The following C++ class illustrates the core methods on
-the Initiation Dispatcher’s public interface:
+- 实现钩子方法以及以特定于应用程序的方式处理这些事件的方法。应用程序向启动分派器注册具体事件处理程序，以处理某些类型的事件。当这些事件到达时，Initiation Dispatcher会回调相应的具体事件处理程序的hook方法。  
+
+  ​	日志服务器中有两个具体事件处理程序：日志处理程序和日志接受器。日志处理程序负责接收和处理日志记录。日志接受器创建并连接日志处理程序，该处理程序处理来自客户端的后续日志记录。  
+
+下面的OMT类图说明了Reactor模式参与者的结构：
+
+<img src="../image/image-20200131172414151.png" alt="image-20200131172414151" style="zoom:50%;" />
+
+## 8 动态
+
+### 8.1 常用协作（一般协作）
+
+以下合作发生在Reactor模式中：
+
+- 当应用程序向启动调度程序注册具体事件处理程序时，该应用程序指示事件的类型，该事件处理程序希望启动调度程序在相关事件发生时通知它。
+- 初始化调度程序请求每个事件处理程序传回其内部句柄。该句柄向OS标识事件处理程序。
+- 注册所有事件处理程序后，应用程序将调用处理事件以启动Initiation Dispatcher的事件循环。此时，启动分派器将来自每个已注册事件处理程序的句柄进行组合，并使用同步事件多路分解器等待事件在这些句柄上发生。例如，TCP协议层使用选择同步事件多路分解操作来等待客户端日志记录事件到达连接的套接字句柄。
+
+- 当与事件源相对应的句柄变为“就绪”（例如，TCP套接字已“就绪以供读取”）时，同步事件多路分解器通知初始化调度程序。
+- Initiation Dispatcher触发事件处理程序钩子方法，以响应就绪句柄上的事件。当事件发生时，Initiation Dispatcher将事件源激活的Handle（句柄）作为“键”来定位和调度适当的Event Handler的hook方法。
+
+- Initiation Dispatcher调用事件处理程序的handle事件挂钩方法，以响应于事件执行特定于应用程序的功能。发生的事件类型可以作为参数传递给该方法，并由该方法在内部使用以执行其他特定于服务的多路复用和分派。第9.4节介绍了另一种调度方法
+
+以下交互图说明了应用程序代码与Reactor模式中的参与者之间的协作：
+
+![image-20200131175317024](../image/image-20200131175317024.png)
+
+### 8.2 协作方案
+
+​		可以使用两种方案来说明用于日志记录服务器的Reactor模式内的协作。这些方案说明了使用反应式事件分派设计的日志记录服务器如何处理连接请求和记录来自多个客户端的数据。
+
+#### 8.2.1 客户端连接到反应（多路复用）日志服务器。
+
+第一种情况显示了客户端连接到日志记录服务器时采取的步骤。
+
+![image-20200131180357156](../image/image-20200131180357156.png)
+
+此步骤顺序可以总结如下：
+
+1. 日志记录服务器（1）向Initiation Dispatcher注册Logging Acceptor 以处理连接请求；
+2. 日志记录服务器调用Initiation Dispatcher的handle事件方法（2）。
+3. Initiation Dispatcher调用同步事件多路分解选择（3）操作，以等待连接请求或日志记录数据到达；
+4. 客户端将（4）连接到日志服务器；
+5. Initiation Dispatcher（5）将新的连接请求通知Logging Acceptor；
+6. Logging Acceptor接受（6）新连接；
+7. Logging Acceptor创建（7）日志处理程序以服务新客户端；
+8. Logging Handler将其套接字句柄注册（8）到Initiation Dispatcher，并指示分配器在套接字变为“准备读取”时通知它。
+
+#### 8.2.2客户端将日志记录发送到多路复用日志服务器
+
+第二种情况显示了反应式日志服务器为日志记录提供服务所采取的步骤顺序。
+
+![image-20200131182749815](../image/image-20200131182749815.png)
+
+此步骤顺序可以总结如下：
+
+1. 客户端发送（1）日志记录；
+2. 当客户端日志记录由OS在其套接字句柄上排队时，Initiation Dispatcher通知（2）关联的Logging Handler；
+3. 以非阻塞方式接收（3）记录（重复步骤2和3，直到完全接收到日志记录为止）；
+4. Logging Handler处理日志记录，并将其写入（4）到标准输出中。
+5. Logging Handler将（5）控制权返回到Initiation Dispatcher的事件循环。
+
+## 9实现
+
+本节描述如何在C ++中实现Reactor模式。ACE通信软件框架[2]中提供的可重用组件会影响以下描述的实现。
+
+### 9.1选择同步事件多路复用器机制（Select  the  Synchronous  Event  Demulti-plexer Mechanism）
+
+初始调度程序使用一个同步事件多路分解器来同步等待直到一个或更多事件发生。这通常通过使用OS事件多路分解系统调用（如select）来实现。select call指示在不阻止应用程序 特定服务处理程序 所在的OS进程的情况下，哪个Handle准备执行I / O操作。一般而言，同步事件多路分解器基于现有的OS机制，而不是由Reactor模式的实现者开发。
+
+### 9.2开发启动调度程序(Develop an Initiation Dispatcher)
+
+以下是开发Initiation Dispatcher必需的步骤：
+
+ 实现事件处理程序表：A Initiation Dispatcher维护一个具体的事件处理程序表。因此，Initiation Dispatcher提供了在运行时从该表注册和删除处理程序的方法。该表可以以多种方式实现，例如，如果将句柄表示为小整数值的连续范围，则使用哈希，线性搜索或直接索引。
+
+实现事件循环入口点：到事件调度程序事件循环的入口点应该由事件处理方法提供。此方法控制由同步事件多路分解器提供的句柄多路分解以及执行事件处理程序调度。通常，整个应用程序的main event循环都由此入口点控制。
+
+​		当事件发生时，Initiation Dispatcher从同步事件多路分解调用返回，并通过为每个“就绪”的句柄调度Event Handler的Shandleeventhook方法来进行“反应”。该挂钩方法将执行用户定义的代码，并在完成后将控制权返回给“初始分配器”。
+
+以下C ++类说明了Initiation Dispatcher的公共接口上的核心方法:
+
+```c++
 enum Event_Type
-// = TITLE
-// Types of events handled by the
-// Initiation_Dispatcher.
-//
-// = DESCRIPTION
-// These values are powers of two so
-// their bits can be efficiently ‘‘or’d’’
-// together to form composite values.
-{
-ACCEPT_EVENT = 01,
-READ_EVENT = 02,
-WRITE_EVENT = 04,
-TIMEOUT_EVENT = 010,
-SIGNAL_EVENT = 020,
-CLOSE_EVENT = 040
-};
-class Initiation_Dispatcher
-// = TITLE
-// Demultiplex and dispatch Event_Handlers
-// in response to client requests.
+   // = TITLE
+   // Types of events handled by the
+   // Initiation_Dispatcher.
+   //
+   // = DESCRIPTION
+   // These values are powers of two so
+   // their bits can be efficiently ‘‘or’d’’
+   // together to form composite values.
+   {
+   ACCEPT_EVENT = 01,
+   READ_EVENT = 02,
+   WRITE_EVENT = 04,
+   TIMEOUT_EVENT = 010,
+   SIGNAL_EVENT = 020,
+   CLOSE_EVENT = 040
+   };
+   class Initiation_Dispatcher
+   // = TITLE
+   // Demultiplex and dispatch Event_Handlers
+   // in response to client requests.
 
 {
 public:
@@ -383,77 +201,33 @@ Event_Type et);
 // Entry point into the reactive event loop.
 int handle_events (Time_Value *timeout = 0);
 };
-Implement the necessary synchronization mechanisms:
-If the Reactor pattern is used in an application with only one
-thread of control it is possible to eliminate all synchroniza-
-tion. In this case, the Initiation Dispatcher serial-
-izes the Event Handler handle event hooks within
-the application’s process.
-However, the Initiation Dispatcher can also
-serve as a central event dispatcher in multi-threaded applica-
-tions. In this case, critical sections within the Initiation
-Dispatcher must be serialized to prevent race conditions
-when modifying or activating shared state variables (such as
-the table holdingthe Event Handlers). A commontech-
-nique for preventing race conditions uses mutual exclusion
-mechanisms like semaphores or mutex variables.
-To prevent self-deadlock, mutual exclusion mechanisms
-can use recursive locks [4]. Recursive locks hold prevent
-deadlock when locks are held by the same thread across
-Event Handler hook methods within the Initiation
-Dispatcher. A recursive lock may be re-acquired
-by the thread that owns the lock without blocking the
-thread. This property is important since the Reactor’s
-handle eventsmethodcallsbackonapplication-specific
-Event Handlers. Application hook method code may
-subsequently re-enter the Initiation Dispatcher
-via its register handler and remove handler
-methods.
-9.3 Determine the Type of the Dispatching
-Target
-Two different types of Event Handlers can be as-
-sociated with a Handle to serve as the target of an
-Initiation Dispatcher’s dispatching logic. Imple-
-mentations of the Reactor pattern can choose either one or
-both of the following dispatching alternatives:
-Event Handler objects: A common way to associate an
-Event Handler with a Handle is to make the Event
-Handleranobject. Forinstance,theReactorpatternimple-
-mentation shown in Section 7 registers Event Handler
-subclass objects with an Initiation Dispatcher.
-Using an object as the dispatchingtarget makesit convenient
-to subclass Event Handlersin orderto reuse and extend
+```
 
+实现必要的同步机制：如果在仅具有一个控制线程的应用程序中使用Reactor模式，则可以消除所有同步。在这种情况下，Initiation Dispatcher会序列化应用程序进程中的事件处理程序处理事件挂钩
 
+​		但是，启动分派器还可以在多线程应用程序中充当中央事件分派器。在这种情况下，在修改或激活共享状态变量（例如保存事件处理程序的表）时，必须对InitiationDispatcher中的关键部分进行序列化，以防止出现竞争情况。防止(种族状况)竞态的常见技术是使用互斥机制，例如信号量或互斥变量。
 
-existing components. In addition, objects integrate the state
-and methods of a service into a single component.
-Event Handler functions: Another way to associate an
-Event Handler with a Handle is to register a function
-with the Initiation Dispatcher. Using functions as
-the dispatching target makes it convenient to register call-
-backs without having to define a new class that inherits from
-Event Handler.
-The Adapter pattern [5] be employed to support both
-objects and functions simultaneously. For instance, an
-adapter could be defined using an event handler object that
-holds a pointer to an event handler function. When the
-handle event method was invoked on the event handler
-adapter object, it could automatically forward the call to the
-event handler function that it holds.
-9.4 Define the Event Handling Interface
-AssumingthatweuseEvent Handlerobjectsratherthan
-functions, the next step is to define the interface of the
-Event Handler. There are two approaches:
-A single-method interface: The OMT diagram in Sec-
-tion 7 illustrates an implementation of the Event
-Handler base class interface that contains a single
-method, called handle event, which is used by the
-Initiation Dispatcher to dispatch events. In this
-case, the type of the event that has occurred is passed as a
-parameter to the method.
-The following C++ abstract base class illustrates the
-single-method interface:
+​		为了防止自锁，互斥机制可以使用用户递归锁[4]。当Initiation Dispatcher中的事件处理程序钩子方法中的同一线程持有锁时，递归锁将保持prevent deadlock。拥有锁的线程可以在不阻塞线程的情况下重新获取递归锁。此属性很重要，因为Reactor's handle events方法会调用特定于应用程序的事件处理程序。随后，应用程序挂钩方法代码可以通过其注册处理程序和删除处理程序方法重新输入Initiation Dispatcher。
+
+### 9.3确定调度的类型
+
+可以将两种不同类型的事件处理程序与a Handle关联，以用作Initiation Dispatcher调度逻辑的目标。反应堆模式的实现可以选择以下两种调度方法中的一种或两种：
+
+事件处理程序对象：将事件处理程序与Handle is关联以使Event Handler成为对象的一种常用方法。例如，第7节中显示的Reactor模式实现将事件处理程序子类对象注册到一个Initiation Dispatcher。使用对象作为调度目标可以方便地对事件处理程序进行子类化以便重用和扩展5现有组件。此外，对象将服务的状态和方法集成到单个组件中。
+
+事件处理程序函数：将事件处理程序与Handleis关联的另一种方法，是向Initiation Dispatcher注册函数。通过使用函数作为调度目标，可以方便地注册回调，而不必定义从Event Handler继承的新类。
+
+适配器模式[5]用于同时支持对象和功能。例如，可以使用事件处理程序对象定义适配器，该对象持有指向事件处理程序功能的指针。在事件handler adapter对象上调用handle event方法时，它可以自动将调用转发给它持有的事件处理函数
+
+### 9.4定义事件处理接口
+
+假设我们使用事件处理程序对象而不是函数，则下一步是定义事件处理程序的接口。有两种方法：
+
+单一方法接口：第7节中的OMT图说明了EventHandlerbase类接口的实现，该接口包含一个称为handleevent的单一方法，Initiation Dispatcher使用它来调度事件。在这种情况下，已发生事件的类型将作为参数传递给方法
+
+​		以下C ++抽象基类说明了单方法接口：
+
+```c++
 class Event_Handler
 // = TITLE
 // Abstract base class that serves as the
@@ -467,19 +241,15 @@ virtual int handle_event (Event_Type et) = 0;
 // I/O Handle.
 virtual Handle get_handle (void) const = 0;
 };
-The advantage of the single-method interface is that it is
-possible to add new types of events without changing the in-
-terface. However,thisapproachencouragesthe useofswitch
-statementsin thesubclass’s handle eventmethod,which
-limits its extensibility.
-A multi-methodinterface: Anotherway toimplementthe
-Event Handler in-
-terface is to define separate virtual hook methods for each
-type of event (such as handle input, handle output,
-or handle timeout).
-The following C++ abstract base class illustrates the
-single-method interface:
+```
 
+​		单方法接口的优点是可以在不更改接口的情况下添加新类型的事件。但是，这种方法鼓励在子类的handle Event方法中使用switch语句，这限制了它的可扩展性。
+
+多方法接口：实现事件处理程序接口的另一种方法是为每种事件类型（例如，handleinput，handleoutput或handletimeout）定义单独的虚拟钩子方法。
+
+​		以下C ++抽象基类说明了单方法接口
+
+```c++
 class Event_Handler
 {
 public:
@@ -494,69 +264,32 @@ virtual int handle_close (void) = 0;
 // Hook method that returns the underlying
 // I/O Handle.
 virtual Handle get_handle (void) const = 0;
-};
-The benefit of the multi-method interface is that it is
-easy to selectively override methods in the base class and
-avoid further demultiplexing, e.g., via switch or if state-
-ments, in the hook method. However, it requires the frame-
-work developer to anticipate the set of Event Handler
-methods in advance. For instance, the various handle *
-methods in the Event Handler interface above are tai-
-lored for I/O events available through the UNIX select
-mechanism. However, this interface is not broad enough
-to encompass all the types of events handled via the Win32
-WaitForMultipleObjects mechanism [6].
-Both approaches described above are examples of the
-hook method pattern described in [3] and the Factory Call-
-back pattern described in [7]. The intent of these patterns is
-to provide well-defined hooks that can be specialized by ap-
-plications and called back by lower-level dispatching code.
-9.5 Determine the Number of Initiation Dis-
-patchers in an Application
-Many applications can be structured using just one instance
-of the Reactor pattern. In this case, the Initiation
-Dispatcher can be implemented as a Singleton [5]. This
-design is useful for centralizing event demultiplexing and
-dispatching into a single location within an application.
-However, some operating systems limit the number of
-Handles that can be waited for within a single thread
-of control. For instance, Win32 allows select and
-WaitForMultipleObjectsto wait forno morethan64
-Handles in a single thread. In this case, it may be neces-
-sary to create multiple threads, each of which runs its own
-instance of the Reactor pattern.
-Note that Event Handlers are only serialized within
-an instance of the Reactor pattern. Therefore, multiple
-Event Handlers in multiple threads can run in parallel.
-This configurationmay necessitate the use of additional syn-
-chronizationmechanismsifEvent Handlersindifferent
-threads access shared state.
-9.6 Implement the Concrete Event Handlers
-The concrete event handlers are typically created by appli-
-cation developers to perform specific services in response to
+};  
+```
 
-particular events. The developers must determine what pro-
-cessing to perform when the corresponding hook method is
-invoked by the initiation dispatcher.
-The following code implements the Concrete Event
-Handlers for the logging server described in Section 3.
-These handlers provide passive connection establishment
-(Logging Acceptor) and data reception (Logging
-Handler).
-The Logging Acceptor class: This class is an example
-of the Acceptor component of the Acceptor-Connector
-pattern [8]. The Acceptor-Connector pattern decouples the
-task of service initialization from the tasks performed after a
-service is initialized. This pattern enables the application-
-specific portion of a service, such as the Logging
-Handler, to vary independently of the mechanism used to
-establish the connection.
-A Logging Acceptor passively accepts connec-
-tions from client applications and creates client-specific
-Logging Handler objects, which receive and process
-logging records from clients. The key methods and data
-membersintheLogging Acceptorclass aredefinedbe-
-low:
+​		多方法接口的好处是很容易在基类中有选择地重写方法，并避免在hook方法中避免进一步的多路分解，例如通过switch or if语句。但是，它要求框架开发人员提前预见事件处理程序方法集。例如，针对通过UNIX选择机制可用的I / O事件，针对上面的EventHandler界面中的variant handle *方法进行了量身定制。但是，此接口不够广泛，无法涵盖通过Win32WaitForMultipleObjects mechanism（机制） [6]处理的所有类型的事件。
+
+​		上述两种方法都是[3]中描述的摘机方法模式和[7]中描述的工厂回调模式的示例。这些模式的目的是提供定义明确的钩子，这些钩子可以由应用程序专门化，并可以由较低级别的调度代码进行回调。
+
+### 9.5确定应用程序中的初始调度程序数量
+
+可以仅使用Reactor模式的一个实例来构造许多应用程序。在这种情况下，Initiation Dispatcher可以实现为Singleton [5]。该设计对于将事件多路分解和调度集中到应用程序内的单个位置非常有用。
+
+​		但是，某些操作系统限制了在单个控制线程中可以等待的句柄数。例如，Win32允许select和WaitForMultipleObject在单个线程中最多等待64个句柄。在这种情况下，可能需要创建多个线程，每个线程都运行自己的Reactor模式实例。
+
+​		请注意，事件处理程序仅在Reactor模式的一个实例中序列化，因此，多个线程中的多个事件处理程序可以并行运行。如果不同线程中的事件处理程序访问共享状态，则此配置可能需要使用其他同步机制。
+
+### 9.6具体事件处理程序的实现
+
+具体的事件处理程序通常由应用程序开发人员创建，以执行特定的服务以响应6特殊事件。当启动调度程序调用相应的钩子方法时，开发人员必须确定要执行什么处理
+
+​		以下代码为第3节中描述的日志服务器实现了具体的事件处理程序。这些处理程序提供了被动连接的建立（日志接受器）和数据接收（LoggingHandler）
+
+Logging Acceptor类：此类是Acceptor-Connector模式[8]的Acceptor组件的示例。接受者-连接器模式将服务初始化任务与服务初始化后执行的任务分离。此模式使服务的特定于应用程序的部分（例如LoggingHandler）可以独立于用于建立连接的机制而变化。
+
+​		A Logging Acceptor被动地接受来自客户端应用程序的连接，并创建特定于客户端的Logging Handler对象，该对象从客户端接收和处理日志记录。下面定义了Logging Acceptor类中的关键方法和数据成员：
+
+```c++
 class Logging_Acceptor : public Event_Handler
 // = TITLE
 // Handles client connection requests.
@@ -582,30 +315,17 @@ private:
 // connections.
 SOCK_Acceptor acceptor_;
 };
-The Logging Acceptor class inherits from the Event
-Handler base class. This enables an application to reg-
-ister the Logging Acceptor with an Initiation
-Dispatcher.
-The Logging Acceptor also contains an instance of
-SOCK Acceptor. This is a concrete factory that enables
-the Logging Acceptorto accept connectionrequestson
-a passive mode socket that is listening to a communication
-port. When a connection arrives from a client, the SOCK
-Acceptor accepts the connection and produces a SOCK
-Stream object. Henceforth, the SOCK Stream object is
+```
 
-used to transfer data reliably between the client and the log-
-ging server.
-The SOCK Acceptor and SOCK Stream classes used
-to implement the logging server are part of the C++ socket
-wrapperlibraryprovidedbyACE[9]. Thesesocketwrappers
-encapsulate the SOCK Stream semantics of the socket in-
-terface within a portable and type-secure object-oriented in-
-terface. In the Internet domain, SOCK Stream sockets are
-implemented using TCP.
-The constructor for the Logging Acceptor registers
-itself with the Initiation Dispatcher Singleton [5]
-for ACCEPT events, as follows:
+Logging Acceptor类继承自Event Handler base类。这使应用程序可以使用Initiation Dispatcher来注册Logging Acceptor.
+
+​	Logging Acceptor还包含SOCK接受器的实例。这是一个具体工厂，使Logging Acceptor可以在侦听通信端口的被动模式套接字上接受连接请求。当连接从客户端到达时，SOCK Acceptor接受该连接并生成SOCK Stream对象。此后，SOCK Stream对象用于在客户端和日志记录服务器之间可靠地传输数据
+
+​		用于实现日志记录服务器的SOCK Acceptor和SOCK Stream类是ACE [9]提供的C ++ socket wrapper库的一部分。这些套接字包装器将套接字接口的SOCK Stream语义封装在可移植且类型安全的面向对象的接口内。在Internet域中，SOCK Stream socket是使用TCP实现的。
+
+Logging Acceptor的构造函数向ACCEPT事件的Initiation Dispatcher Singleton [5]自行注册。
+
+```c++
 Logging_Acceptor::Logging_Acceptor
 (const INET_Addr &addr)
 : acceptor_ (addr)
@@ -617,9 +337,11 @@ Logging_Acceptor::Logging_Acceptor
 Initiation_Dispatcher::instance ()->
 register_handler (this, ACCEPT_EVENT);
 }
-Henceforth, whenever a client connection arrives, the
-Initiation Dispatcher calls back to the Logging
-Acceptor’s handle event method, as shown below:
+```
+
+此后，每当客户端连接到达时，Initiation Dispatcher便会回调到Logging Acceptor的handle事件方法，如下所示
+
+```c++
 void
 Logging_Acceptor::handle_event (Event_Type et)
 {
@@ -631,18 +353,14 @@ acceptor_.accept (new_connection);
 // Create a new Logging Handler.
 Logging_Handler *handler =
 new Logging_Handler (new_connection);
-}
-The handle event method invokes the accept method
-of the SOCK Acceptor to passively establish a SOCK
-Stream. Once the SOCK Stream is connected with
-the new client, a Logging Handler is allocated dy-
-namically to process the logging requests. As shown
-below, the Logging Handler registers itself with the
-Initiation Dispatcher, which will demultiplex all
-the logging records of its associated client to it.
-The Logging Handler class: The logging server uses the
-Logging Handler class shown below to receive logging
-records sent by client applications:
+}  
+```
+
+处理事件方法调用SOCK Acceptor的接受方法以被动地建立SOCK Stream。一旦SOCK Stream与新客户端连接，就会动态分配Logging Handler来处理日志记录请求。如下所示，Logging Handler向Initiation Dispatcher进行注册，该调度程序将多路复用与其关联的客户端的所有日志记录。
+
+Logging Handler类：日志服务器使用以下所示的Logging Handler类接收客户端应用程序发送的日志记录:
+
+```c++
 class Logging_Handler : public Event_Handler
 // = TITLE
 // Receive and process logging records
@@ -678,12 +396,11 @@ Logging_Handler::Logging_Handler
 Initiation_Dispatcher::instance ()->
 register_handler (this, READ_EVENT);
 }
-Once it’s created, a Logging Handler registers itself
-for READ events with the Initiation Dispatcher
-Singleton. Henceforth, when a logging record arrives,
-the Initiation Dispatcher automatically dispatches
-the handle event method of the associated Logging
-Handler, as shown below:
+```
+
+创建日志后，日志处理程序就会使用Initiation Dispatcher Singleton为READ事件注册自己。因此，当日志记录到达时，Initiation Dispatcher会自动调度关联Logging Handler的handle事件方法，如下所示:
+
+```c++
 void
 Logging_Handler::handle_event (Event_Type et)
 {
@@ -697,28 +414,17 @@ else if (et == CLOSE_EVENT) {
 peer_stream_.close ();
 delete (void *) this;
 }
-}
-When a READ event occurs on a socket Handle,
-the Initiation Dispatcher calls back to the
-handle event method of the Logging Handler.
-This method receives, processes, and writes the logging
-record to the standard output ( STDOUT ). Likewise, when
-the client closes down the connection the Initiation
-Dispatcher passes a CLOSE event, which informs the
-Logging Handler to shut down its SOCK Stream and
-delete itself.
+```
 
-9.7 Implement the Server
-The logging server contains a single main function.
-The logging server main function: This function imple-
-mentsa single-threaded,concurrentloggingserverthat waits
-in the Initiation Dispatcher’s handle events
-event loop. As requests arrive from clients, the
-Initiation Dispatcher invokes the appropriate
-Concrete Event Handler hook methods, which ac-
-cept connections and receive and process logging records.
-The main entry point into the logging server is defined as
-follows:
+当套接字句柄上发生READ事件时，Initiation Dispatcher会回调Logging Handler的handle Event方法。此方法接收，处理日志记录并将其写入标准输出（STDOUT）。同样，当客户端关闭连接时，Initiation Dispatcher会传递一个CLOSE事件，该事件会通知日志记录处理程序关闭其SOCK流并删除自身
+
+### 9.7服务端实现
+
+日志记录服务器包含一个main函数。
+
+日志记录服务器主要功能：该函数实现一个单线程并发日志记录服务器，该服务器在Initiation Dispatcher的handle Events事件循环中等待。当请求从客户端到达时，Initiation Dispatcher调用适当的Concrete Event Handler hook方法（具体的事件处理钩子方法），该方法接受连接并接收和处理日志记录。进入日志服务器的主要入口点定义如下：
+
+```c++
 // Server port number.
 const u_short PORT = 10000;
 int
@@ -736,173 +442,60 @@ Initiation_Dispatcher::instance ()->
 handle_events ();
 /* NOTREACHED */
 return 0;
-}
-The main program creates a Logging Acceptor, whose
-constructor initializes it with the port number of the log-
-ging server. The program then enters its main event-loop.
-Subsequently, the Initiation Dispatcher Singleton
-uses the select event demultiplexing system call to syn-
-chronously wait for connection requests and logging records
-to arrive from clients.
-The following interaction diagram illustrates the collabo-
-ration between the objects participating in the loggingserver
-example:
+}  
+```
 
-Once the Initiation Dispatcher object is initial-
-ized, it becomes the primary focus of the control flow within
-the logging server. All subsequent activity is triggered by
-hookmethodsontheLogging AcceptorandLogging
-Handler objects registered with, and controlled by, the
-Initiation Dispatcher.
-When a connection request arrives on the network
-connection, the Initiation Dispatcher calls back
-the Logging Acceptor, which accepts the network
-connection and creates a Logging Handler. This
-Logging Handlerthenregisterswith theInitiation
-Dispatcher for READ events. Thus, when a client sends
-a logging record, the Initiation Dispatcher calls
-back to the client’s Logging Handler to process the in-
-coming record from that client connection in the logging
-server’s single thread of control.
-10 Known Uses
-The Reactor pattern has been used in many object-oriented
-frameworks, including the following:
-? InterViews: The Reactor pattern is implemented by
-the InterViews [10] window system distribution, where
-it is known as the Dispatcher. The InterViews
-Dispatcher is used to define an application’s main event
-loopandtomanageconnectionstooneormorephysicalGUI
-displays.
-? ACE Framework: The ACE framework [11] uses the
-Reactor pattern as its central event demultiplexer and dis-
-patcher.
-The Reactor pattern has been used in many commercial
-projects, including:
-? CORBA ORBs: The ORB Core layer in many single-
-threaded implementationsof CORBA [12] (such as VisiBro-
-ker, Orbix, and TAO [13]) use the Reactor pattern to demul-
-tiplex and dispatch ORB requests to servants.
-? Ericsson EOS Call Center Management System: This
-system uses the Reactor pattern to manage events routed by
-Event Servers [14] between PBXs and supervisors in a Call
-Center Management system.
-? ProjectSpectrum: Thehigh-speedmedicalimagetrans-
-fer subsystem of project Spectrum [15] uses the Reactor pat-
-tern in a medical imaging system.
-11 Consequences
-11.1 Benefits
-The Reactor pattern offers the following benefits:
+主程序创建一个Logging Acceptor，其构造函数使用日志记录服务器的端口号对其进行初始化。然后，程序进入其主事件循环。随后，Initiation Dispatcher Singleton使用select event多路分解系统调用来同步等待连接请求和记录记录从客户端到达。
 
-Separation of concerns: The Reactor pattern decou-
-ples application-independent demultiplexing and dispatch-
-ing mechanisms from application-specific hook method
-functionality. The application-independent mechanisms be-
-come reusable components that know how to demultiplex
-events and dispatch the appropriate hook methods defined
-by Event Handlers. In contrast, the application-specific
-functionality in a hook method knows how to perform a par-
-ticular type of service.
-Improve modularity, reusability, and configurability of
-event-driven applications: The pattern decouples appli-
-cation functionality into separate classes. For instance, there
-are two separate classes in the logging server: one for es-
-tablishing connections and another for receiving and pro-
-cessing logging records. This decoupling enables the reuse
-of the connection establishment class for different types of
-connection-oriented services (such as file transfer, remote
-login, and video-on-demand). Therefore, modifying or ex-
-tending the functionality of the logging server only affects
-the implementation of the logging handler class.
-Improves application portability: The Initiation
-Dispatcher’s interface can be reused independently of
-the OS system calls that perform event demultiplexing.
-These system calls detect and report the occurrence of one
-or more events that may occur simultaneously on multi-
-ple sources of events. Common sources of events may in-
-clude I/O handles, timers, and synchronization objects. On
-UNIX platforms, the event demultiplexing system calls are
-called select and poll [1]. In the Win32 API [16], the
-WaitForMultipleObjectssystem call performsevent
-demultiplexing.
-Provides coarse-grained concurrency control: The Re-
-actor pattern serializes the invocation of event handlers at
-the level of event demultiplexing and dispatching within
-a process or thread. Serialization at the Initiation
-Dispatcherlevelofteneliminatesthe needformorecom-
-plicated synchronization or locking within an application
-process.
-11.2 Liabilities
-The Reactor pattern has the following liabilities:
-Restricted applicability: The Reactor pattern can only be
-applied efficiently if the OS supports Handles. It is pos-
-sible to emulate the semantics of the Reactor pattern using
-multiple threads within the Initiation Dispatcher,
-e.g. one threadfor eachHandle. Wheneverthere are events
-availableonahandle,itsassociatedthreadwill readtheevent
-and place it on a queue that is processed sequentially by the
-initiation dispatcher. However, this design is typically very
-inefficientsince it serializes all Event Handlers, thereby
-increasing synchronization and context switching overhead
-without enhancing parallelism.
+​		以下交互图说明了参与日志记录服务器的对象之间的协作示例
 
-Non-preemptive: In a single-threaded application pro-
-cess, Event Handlers are not preempted while they are
-executing. This implies that an Event Handler should
-not perform blocking I/O on an individual Handle since
-this will block the entire process and impede the respon-
-siveness for clients connected to other Handles. There-
-fore,forlong-durationoperations,suchastransferringmulti-
-megabyte medical images [15], the Active Object pattern
-[17] may be more effective. An Active Object uses multi-
-threadingormulti-processingtocompleteitstasksinparallel
-with the Initiation Dispatcher’s main event-loop.
-Hardto debug: Applicationswritten with theReactor pat-
-tern can be hard to debug since the inverted flow of con-
-trol oscillates between the framework infrastructure and the
-method callbacks on application-specific handlers. This in-
-creases the difficulty of “single-stepping” through the run-
-time behavior of a framework within a debugger since appli-
-cation developers may not understand or have access to the
-frameworkcode. Thisis similar to the problemsencountered
-trying to debug a compiler lexical analyzer and parser writ-
-ten with LEX and YACC. In these applications, debugging
-is straightforward when the thread of control is within the
-user-defined action routines. Once the thread of control re-
-turns to the generated Deterministic Finite Automata (DFA)
-skeleton, however, it is hard to follow the program logic.
-12 See Also
-The Reactor pattern is related to the Observer pattern [5],
-where all dependents are informed when a single subject
-changes. In the Reactor pattern, a single handler is informed
-when an event of interest to the handler occurs on a source
-of events. The Reactor pattern is generally used to demul-
-tiplex events from multiple sources to their associated event
-handlers, whereas an Observer is often associated with only
-a single source of events.
-The Reactor pattern is related to the Chain of Responsibil-
-ity (CoR) pattern [5], where a request is delegated to the re-
-sponsible service provider. The Reactor pattern differs from
-the CoR pattern since the Reactor associates a specific Event
-Handler with a particular source of events, whereas the CoR
-pattern searches the chain to locate the first matching Event
-Handler.
-The Reactorpattern canbe considereda synchronousvari-
-ant of the asynchronous Proactor pattern [18]. The Proac-
-tor supports the demultiplexing and dispatching of multiple
-event handlers that are triggered by the completion of asyn-
-chronous events. In contrast, the Reactor pattern is respon-
-sible for demultiplexing and dispatching of multiple event
-handlers that are triggered when it is possible to initiate an
-operation synchronously without blocking.
-The Active Object pattern [17] decouples method execu-
-tionfrommethodinvocationtosimplifysynchronizedaccess
-to a shared resource by methods invoked in different threads
-of control. The Reactor pattern is often used in place of the
+![image-20200315215832974](image/image-20200315215832974.png)
 
-Active Object patternwhenthreadsare not availableor when
-the overhead and complexity of threading is undesirable.
-An implementation of the Reactor pattern provides a Fa-
-cade [5] for event demultiplexing. A Facade is an interface
-that shields applications from complex object relationships
-within a subsystem.
+初始化Initiation Dispatcher对象后，它将成为日志服务器内控制流的主要焦点。所有后续活动都是由在Initiation Dispatcher中注册并由其控制的Logging Acceptor和LoggingHandler对象上的钩子方法触发的。
 
+​		当连接请求到达网络连接时，Initiation Dispatcher会回调Logging Acceptor，后者接受网络连接并创建一个Logging Handler。此Logging Handler然后向Read Events的Initiation Dispatcher注册。因此，当客户端发送日志记录时，Initiation Dispatcher回调到客户端的Logging Handler，以在日志服务器的单控制线程中处理来自该客户端连接的传入记录
+
+## 10已知用途
+
+Reactor模式已在许多面向对象的框架中使用，包括以下内容
+
+- InterViews：Reactor模式由InterViews [10]窗口系统发行版（称为Dispatcher）实现。InterViews Dispatcher用于定义应用程序的主事件循环并管理与一个或多个物理GUI显示器的连接
+
+- ACE框架：ACE框架[11]使用Reactor模式作为其中央事件多路分解器和分派器
+
+  反应堆模式已用于许多商业项目，包括
+
+- CORBA ORB：在CORBA [12]的许多单线程实现中，ORB核心层（例如VisiBro-ker，Orbix和TAO [13]）使用Reactor模式进行解复用并将ORB请求分发给服务方
+- 爱立信EOS呼叫中心管理系统：该系统使用Reactor模式来管理CallCenter管理系统中PBX与主管之间的事件服务器[14]路由的事件
+- 项目频谱：项目频谱[15]的高速医学图像传输子系统在医学成像系统中使用反应堆模式
+
+## 11后果（影响）
+
+### 11.1好处
+
+Reactor模式具有以下优点：
+
+- 关注点分离：Reactor模式将与应用程序无关的解复用和分派机制与特定于应用程序的挂钩方法功能相分离。与应用程序无关的机制成为了可重用的组件，这些组件知道如何对事件进行多路分解并分派由事件处理程序定义的相应挂钩方法。相反，挂钩方法中的特定于应用程序的功能知道如何执行特定类型的服务。
+- 改善事件驱动应用程序的模块化，可重用性和可配置性：该模式将应用程序功能分离为单独的类。例如，日志记录服务器中有两个单独的类：一个用于建立连接的建立连接，另一个用于接收和处理记录的处理。通过这种解耦，可以将连接建立类重新用于不同类型的面向连接的服务（例如文件传输，远程登录和视频点播）。因此，修改或扩展日志服务器的功能只会影响日志处理程序类的实现。
+- 提高应用程序的可移植性：Initiation Dispatcher的界面可以独立于执行事件多路分解的OS系统调用而重用。这些系统调用可检测并报告一个或多个事件的发生，这些事件可能在多个事件源上同时发生。常见的事件源可能包括I / O句柄，计时器和同步对象。在UNIX平台上，事件多路分解系统调用称为selectandpoll [1]。在Win32 API [16]中，WaitForMultipleObjects系统调用执行事件多路分解
+- 提供粗粒度的并发控制：Re-actor模式在事件多路分解和调度级别通过进程或线程对事件处理程序的调用进行序列化。InitiationDispatcher级别的序列化通常消除了在应用程序进程中进行更复杂的同步或锁定的需求
+
+## 11.2缺点
+
+Reactor模式具有以下缺点
+
+- 有限的适用性：只有在操作系统支持Handles的情况下，才能有效地应用Reactor模式。可以使用Initiation Dispatcher中的多个线程来模拟Reactor模式的语义，例如，每个Handle使用一个线程。每当句柄上有可用事件时，其关联线程将读取该事件并将其放置在由初始化调度程序顺序处理的队列上。但是，这种设计通常效率非常低，因为它会序列化所有事件处理程序，从而在不增强并行性的情况下增加了同步和上下文切换开销
+- 非抢占式：在单线程应用程序过程中，事件处理程序在执行时不会被抢占。这意味着事件处理程序不应在单个Handles上执行阻塞I / O，因为这将阻塞整个过程并阻碍对连接到other Handles的客户端的响应。因此，对于长时间操作，例如传输数兆字节的医学图像，[15]]，活动对象模式[17]可能更有效。活动对象使用多线程或多处理来与Initiation Dispatcher的主事件循环并行完成其任务。
+- 难以调试：使用Reactor模式编写的应用程序可能难以调试，因为控制反转的流程在特定应用程序处理程序的框架基础结构和方法回调之间振荡。由于应用程序开发人员可能不了解或无法访问框架代码，因此增加了调试器中框架的运行时行为“单步执行”的难度。这类似于尝试使用LEXandYACC调试编译器词法分析器和解析器时遇到的问题。在这些应用程序中，当控制线程位于用户定义的动作例程中时，调试非常简单。但是，一旦控制线程返回到生成的确定性有限自动机（DFA）骨架，就很难遵循程序逻辑。
+
+## 12    See Also
+
+反应堆模式与观察者模式[5]相关，在此模式下，当单个主题发生更改时，所有依赖项都会被通知。在Reactor模式中，当事件源上发生处理程序感兴趣的事件时，将通知单个处理程序。Reactor模式通常用于将多个源中的事件多路复用到与其关联的事件处理程序，而Observer通常仅与单个事件源相关联。
+
+​		反应堆模式与责任链（CoR）模式有关[5]，在该模式中，请求被委派给负责任的服务提供者。Reactor模式与CoR模式不同，因为Reactor将特定的EventHandler与特定的事件源相关联，而CoRpattern则在链中搜索以找到第一个匹配的EventHandler
+
+​		可以将Reactor模式视为异步Proactor模式的异步变量[18]。Proac-tor支持异步事件的完成触发的多事件处理程序的解复用和分派。相反，Reactor模式负责多事件处理程序的解复用和分派，当有可能在不阻塞的情况下同步启动操作时，将触发这些事件处理程序
+
+​		活动对象模式[17]使方法执行与方法调用脱钩，从而简化了在不同控制线程中调用的方法对共享资源的同步访问。当线程不可用或不希望线程的开销和复杂性时，通常使用Reactor模式代替Active Object模式
+
+​		Reactor模式的实现为事件多路分解提供了Fa-cade [5]。Facade是一种界面，可屏蔽子系统中的应用程序与复杂的对象关系
