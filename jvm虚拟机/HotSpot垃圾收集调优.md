@@ -600,20 +600,20 @@ G1 GC是具有默认设置的自适应垃圾收集器，可使其无需修改即
 
 表10-1 G1垃圾收集器的重要选项的默认值
 
-|      |      |
-| ---- | ---- |
-|      |      |
-|      |      |
-|      |      |
-|      |      |
-|      |      |
-|      |      |
-|      |      |
-|      |      |
-|      |      |
-|      |      |
-|      |      |
-|      |      |
+| 选项和默认值                           | 选项                                                         |
+| -------------------------------------- | ------------------------------------------------------------ |
+| -XX:G1HeapRegionSize=n                 | 设置G1区域的大小。该值为2的幂，范围为1 MB到32 MB。目标是根据最小Java堆大小具有大约2048个区域。 |
+| -XX:MaxGCPauseMillis=200               | 为所需的最大暂停时间设置目标值。默认值为200毫秒。指定的值不适合您的堆大小。 |
+| -XX:G1NewSizePercent=5                 | 设置要用作年轻代大小的最小值的堆百分比。默认值为Java堆的5％。这是一个实验性标志。有关示例，请参见如何解锁实验性VM标志。此设置替换-XX：DefaultMinNewGenPercent设置。 |
+| -XX:G1MaxNewSizePercent=60             | 设置堆大小的百分比，以用作年轻代大小的最大值。默认值为Java堆的60％。这是一个实验性标志。有关示例，请参见如何解锁实验性VM标志。此设置替换-XX：DefaultMaxNewGenPercent设置。 |
+| -XX:ParallelGCThreads=n                | 设置STW工作线程的值。将n的值设置为逻辑处理器的数量。n的值与最多等于8的逻辑处理器的数量相同。如果逻辑处理器多于八个，则将n的值设置为逻辑处理器的大约5/8。除较大的SPARC系统外，这在大多数情况下都有效，其中n的值约为逻辑处理器的5/16。 |
+| -XX:ConcGCThreads=n                    | 设置平行标记线的数量。将n设置为并行垃圾回收线程数（ParallelGCThreads）的1/4。 |
+| -XX:InitiatingHeapOccupancyPercent=45  | 设置触发标记周期的Java堆占用阈值。默认占用率为整个Java堆的45％。 |
+| -XX:G1MixedGCLiveThresholdPercent=85   | 设置要包含在混合垃圾收集周期中的旧区域的占用阈值。默认占用率为85％。这是一个实验性标志。有关示例，请参见如何解锁实验性VM标志。此设置替换-XX：G1OldCSetRegionLiveThresholdPercent设置。 |
+| -XX:G1HeapWastePercent=5               | 设置您愿意浪费的堆百分比。当可回收百分比小于堆垃圾百分比时，Java HotSpot VM不会启动混合垃圾回收周期。默认值为5％。 |
+| -XX:G1MixedGCCountTarget=8             | 设置标记周期后混合垃圾回收的目标数量，以收集具有最多G1MixedGCLIveThresholdPercent个实时数据的旧区域。默认值为8个混合垃圾回收。混合馆藏的目标是在此目标数量之内。 |
+| -XX:G1OldCSetRegionThresholdPercent=10 | 设置在混合垃圾收集周期中要收集的旧区域数的上限。默认值是Java堆的10％。 |
+| -XX:G1ReservePercent=10                | 设置保留内存的百分比以保持可用，以减少空间溢出的风险。默认值为10％。当增加或减少百分比时，请确保将总Java堆调整相同的数量。 |
 
 脚注1此设置在Java HotSpot VM内部版本23或更早版本中不可用。
 
