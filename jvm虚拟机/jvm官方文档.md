@@ -28,3 +28,9 @@ jvm参数：
 
 https://www.oracle.com/technetwork/java/javase/tech/vmoptions-jsp-140102.html
 
+
+
+### Java 永久代去哪儿了
+
+https://www.infoq.cn/article/Java-PERMGEN-Removed
+
