@@ -245,3 +245,36 @@ student.stream().filter(student -> student.getAge() > 20 && student.getAddress()
 
 - Intrmediate:一个流可以后面跟随0个或多个intermediate操作。其目的主要是打开流，做出某种程度的数据映射/过滤，然后返回一个新的流，交给下一个操作使用，这类操作都是延迟的（lazy）,就是说，仅仅调用到这类方法，并没有真正开始流的遍历
 - Terminal:一个流只能有一个teriminal操作，当这个操作执行后，流就被用“光”了，无法再被操作。所以这必定是流的最后一个操作。Terminal操作的执行，才会真正开始流的遍历，并且会生成一个结果
+
+
+
+1. collect:收集器
+2. Collector作为collect方法的参数
+3. Colelctor是一个接口，是一个可变的汇聚操作，将输入元素累积到一个可变的结果容器中；它会在所有元素都处理完毕后，将累
+4. Collectors本身提供了关于Collector的常见汇聚实现，Collectors本身实际上是一个工厂
+5. 为了确保串行与并行操作结果的等价性，Collector函数需要满足两个条件：identity(同一性)与associativity(结合性)
+6. a == combiner.apply(a,supplier.get())
+7. 函数式编程最大的特点：表示做什么，而不是如何做
+
+（List<Student> list1,List<Student> list2） -> {list1.addAll(list2);return list1}
+
+
+
+combiner函数，有4个线程同时去执行，纳闷就会生成4个部分结果
+
+1，2，3，4
+
+1，2 -> 1
+
+5,3-> 6
+
+6,4->7
+
+
+
+ReferencePipeline 表示流的源阶段和中间阶段
+
+Referencepipeline.Head表示流的源阶段
+
+二者在大部分属性的设定上都是类似的，但存在一些属性是不同的，比如 Head是没有previousStage的，而ReferencePipeline则是存在previousStage的，等等。
+
