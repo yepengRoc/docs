@@ -14,7 +14,7 @@ https://www.jianshu.com/p/838db0269fd0
 
 ###  cat /etc/crontab   查看crontab 表达式各个字段的意思
 
-```bash
+```bas
 SHELL=/bin/bash
 PATH=/sbin:/bin:/usr/sbin:/usr/bin
 MAILTO=root
