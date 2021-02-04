@@ -53,7 +53,7 @@ cp build_gcc_7.1.0/x86_64-pc-linux-gnu/libstdc++-v3/src/.libs/libstdc++.so.6.0.2
 rm libstdc++.so.6
 #重新建立软连接
 ln libstdc++.so.6.0.23 libstdc++.so.6
-ln –snf  /var/www/test1  libstdc++.so.6  #更新
+ln –snf  libstdc++.so.6.0.23  libstdc++.so.6  #更新
 #执行以下命令查看
 strings /usr/lib64/libstdc++.so.6 | grep GLIBCXX
 
@@ -78,6 +78,15 @@ LD_PRELOAD=/lib64/libc-2.12.so ln -s /lib64/libc-2.12.so  /lib64/libc.so.6
 LD_PRELOAD=/lib64/libc-2.12.so rm libc.so.6
 LD_PRELOAD=/lib64/libc-2.18.so ln -s /lib64/libc-2.18.so libc.so.6
 
+LD_PRELOAD=/lib64/libc-2.18.so ln -s /lib64/libc-2.18.so libc.so.6
+
+
+LD_PRELOAD=/data/libc-2.18-backups.so rm /lib64/libc.so.6
+LD_PRELOAD=/data/libc-2.18-backups.so ln -s /data/libc-2.18-backups.so /lib64/libc.so.6
+libc-2.18-backups.so
+
+LD_PRELOAD=/lib64/libc-2.18.so rm /lib64/libc.so.6
+LD_PRELOAD=/lib64/libc-2.18.so ln -s /lib64/libc-2.18.so /lib64/libc.so.6
 ```
 
 **需要从新下载新的glib包来解决glic版本升级问题**
