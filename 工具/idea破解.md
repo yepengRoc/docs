@@ -20,3 +20,13 @@ http://fls.jetbrains-agent.com
 
 
 
+
+
+2020-12-29 以上方式都不好使了
+
+有效破解，方式是进行重置使用时间，插件自动重置
+
+https://www.macfz.com/a/Jetbrainscrack.html
+
+
+
